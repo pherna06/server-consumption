@@ -1,5 +1,5 @@
 import gym
-import gym-cpu
+import gym_cpu
 
 def run_test(env, verbose=False):
     env.reset()
