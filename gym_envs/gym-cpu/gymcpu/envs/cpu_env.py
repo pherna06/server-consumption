@@ -38,7 +38,7 @@ class CPUEnv(gym.Env):
     
     metadata = { 'render.modes': ['human'] }
 
-    def __init__(self, cpu, limit, div = 8):        
+    def __init__(self):        
         # Setup pyRAPL.
         pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=[self.CPU])
 
