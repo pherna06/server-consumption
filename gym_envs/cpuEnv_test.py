@@ -30,7 +30,7 @@ def run_test(env, verbose=False):
 
 def main():
     env = gym.make('CPUEnv-v0')
-    env.env.set_variables(core, limit)
+    env.env.set_rapl(core, limit)
     sum_reward = run_test(env, verbose=True)
 
     history = []
