@@ -128,6 +128,16 @@ class CPUEnv(gym.Env):
         self.position = self.np_random.choice(self.init_positions)
         self.count = 0
 
+        # Getting CPU to initial frequency.
+        freq = self._frequencies[self.position]
+        self._cpu.set_frequencies(freq, self.CPU)
+        if self._cpu.get_min_freq()[self.CPU] < freq:
+            self._cpu.set_max_frequencies(freq, self.CPU)
+            self._cpu.set_min_frequencies(freq, self.CPU)
+        else:
+            self._cpu.set_min_frequencies(freq, self.CPU)
+            self._cpu.set_max_frequencies(freq, self.CPU)
+
         # state is frequency position
         self.state = self.position
         self.reward = 0
