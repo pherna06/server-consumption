@@ -1,7 +1,7 @@
 import pyRAPL
 import time
 
-pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=list(range(0,16)))
+pyRAPL.setup(devices=[pyRAPL.Device.PKG])
 
 report = pyRAPL.outputs.PrintOutput()
 
