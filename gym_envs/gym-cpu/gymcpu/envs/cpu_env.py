@@ -54,8 +54,6 @@ class CPUEnv(gym.Env):
         # Pseudorandom generator.
         self.seed()
 
-        self.reset()
-
     def step(self, action):
         if self.done:
             print("ERROR: stepped while done.")
@@ -172,3 +170,5 @@ class CPUEnv(gym.Env):
 
         # Setup pyRAPL.
         pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=[self._core])
+
+        self.reset()
