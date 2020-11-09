@@ -1,1 +1,1 @@
-from gym_cpu.envs.cpu_env import CPUEnv
+from gymcpu.envs.cpu_env import CPUEnv
