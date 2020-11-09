@@ -129,7 +129,7 @@ class CPUEnv(gym.Env):
         self.count = 0
 
         # Getting CPU to initial frequency.
-        freq = self._frequencies[self.position]
+        freq = self._frequencies[self.position - 1]
         self._cpu.set_frequencies(freq, self.CPU)
         if self._cpu.get_min_freq()[self.CPU] < freq:
             self._cpu.set_max_frequencies(freq, self.CPU)
@@ -147,7 +147,7 @@ class CPUEnv(gym.Env):
         return self.state
 
     def render(self, mode='human'):
-        print(f"frequency: {self._frequencies[self.position]:>7},",
+        print(f"frequency: {self._frequencies[self.position - 1]:>7},",
               f"reward: {self.reward:>3},",
               f"info: {self.info}")
 
