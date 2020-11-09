@@ -28,7 +28,7 @@ def run_test(env, verbose=False):
     return sum_reward
 
 def main():
-    env = gym.make('cpu_env')
+    env = gym.make('CPUEnv-v0')
     sum_reward = run_test(env, verbose=True)
 
     history = []
