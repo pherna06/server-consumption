@@ -7,14 +7,14 @@ int main()
 
     for (int i = 0; i < 8; ++i)
     {
-        pid[i] = fork()
+        pid[i] = fork();
         if (pid[i] == 0)
         {
             // Child.
             execl(
                 "/usr/bin/taskset",
                 "taskset", "-c", i,
-                "/home/pherna06/venv-esfinge/server-consumption/work/test")
+                "/home/pherna06/venv-esfinge/server-consumption/work/test");
             break;
         }        
     }
