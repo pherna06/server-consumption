@@ -13,9 +13,10 @@ int main()
         if (pid[i] == 0)
         {
             // Child.
+            char* core = {'0' + i, '\0'};
             int e = execl(
                 "/usr/bin/taskset",
-                "taskset", "-c", i,
+                "taskset", "-c", core,
                 "/home/pherna06/venv-esfinge/server-consumption/work/test");
 
             if (e == -1)
