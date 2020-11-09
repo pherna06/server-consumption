@@ -31,16 +31,7 @@ def run_test(env, verbose=False):
 def main():
     env = gym.make('CPUEnv-v0')
     env.set_rapl(core, limit)
-    sum_reward = run_test(env, verbose=True)
-
-    history = []
-
-    for _ in range(10):
-        sum_reward = run_test(env)
-        history.append(sum_reward)
-
-    avg_sum_reward = sum(history) / len(history)
-    print(f"\nbaseline cumulative reward: {avg_sum_reward:6.2}")
+    run_test(env, verbose=True)
 
 # Handle script argv
 args = len(sys.argv)
