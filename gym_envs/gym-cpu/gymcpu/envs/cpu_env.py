@@ -105,15 +105,15 @@ class CPUEnv(gym.Env):
             elif action == self.LOWER_FREQ:
                 self.reward += self.REWARD_LOWER_ABOVE if overlimit else self.REWARD_LOWER_BELOW
 
-            ## Check goal reached.
-            if action == self.RAISE_FREQ and self._current_power > self._limit and m_power <= self._limit:
-                self.done = True
-
-            ## Update env values and return.
+            ## Update env values.
             self.info['delta'] = m_power - self._current_power
             self.info['power'] = m_power
             self._current_power = m_power
             self.state = self.position
+
+            ## Check goal reached.
+            if action == self.LOWER_FREQ and overlimit and self._current_power <= self._limit:
+                self.done = True
 
             return [self.state, self.reward, self.done, self.info]
 
@@ -132,7 +132,7 @@ class CPUEnv(gym.Env):
             self._cpu.set_max_frequencies(freq, self._core)
 
         # Measure initial power.
-        meter = pyRAPL.Measurement(label=f"Iter {self.count}")
+        meter = pyRAPL.Measurement(label=f"Reset")
         meter.begin()
         time.sleep(1) # Sleep for a second while CPU works in the background.
         meter.end()
