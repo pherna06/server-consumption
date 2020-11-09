@@ -113,7 +113,7 @@ class CPUEnv(gym.Env):
                 self.reward += self.REWARD_LOWER_ABOVE if overlimit else self.REWARD_LOWER_BELOW
 
             ## Check goal reached.
-            if action == self.RAISE_FREQ and self._current_power > LIMIT and m_power <= LIMIT:
+            if action == self.RAISE_FREQ and self._current_power > self.LIMIT and m_power <= self.LIMIT:
                 self.done = True
 
             ## Update env values and return.
