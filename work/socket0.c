@@ -13,11 +13,17 @@ int main()
         if (pid[i] == 0)
         {
             // Child.
-            execl(
+            int e = execl(
                 "/usr/bin/taskset",
                 "taskset", "-c", i,
                 "/home/pherna06/venv-esfinge/server-consumption/work/test");
-            return;
+
+            if (e == -1)
+            {
+                printf("execl error");
+                return;
+            }
+            break;
         }        
     }
 
