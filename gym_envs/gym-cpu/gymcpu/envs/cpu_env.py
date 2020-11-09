@@ -91,8 +91,8 @@ class CPUEnv(gym.Env):
                     # Modify frequency.
                     freq = self._frequencies[self.position - 1]
                     self._cpu.set_frequencies(freq, self.CPU)
-                    self.set_min_frequencies(freq, self.CPU)
-                    self.set_max_frequencies(freq, self.CPU)
+                    self._cpu.set_min_frequencies(freq, self.CPU)
+                    self._cpu.set_max_frequencies(freq, self.CPU)
 
             ## Measure new power consumption.
             meter = pyRAPL.Measurement(label=f"Iter {self.count}")
