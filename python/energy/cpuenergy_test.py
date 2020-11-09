@@ -16,7 +16,7 @@ elif args == 3:
     _interval = float(sys.argv[1])
     _core = int(sys.argv[2])
 elif args == 2:
-    _core = int(sys.argv[1])
+    _interval = int(sys.argv[1])
 
 _socket = _core // _div
 
