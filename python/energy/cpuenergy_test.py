@@ -23,11 +23,18 @@ report = pyRAPL.outputs.PrintOutput()
 cpu = cpuFreq()
 cpu.set_governors("userspace")
 
+# Starting frequency: minimum
+available_freqs = sorted(cpu.available_frequencies)
+cpu.set_frequencies(available_freqs[0])
+cpu.set_min_frequencies(available_freqs[0])
+cpu.set_max_frequencies(available_freqs[0])
+
 # Available frequencies energy test.
 power_reg = {}
-available_freqs = cpu.available_frequencies
-for freq in available_freqs[1:]:
+for freq in available_freqs[0:]:
     cpu.set_frequencies(freq)
+    cpu.set_max_frequencies(freq)
+    cpu.set_min_frequencies(freq)
     
     meter = pyRAPL.Measurement(f"{int(freq/1000)} MHz")
     
