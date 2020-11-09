@@ -8,9 +8,9 @@ import time
 
 class CPUEnv(gym.Env):
     # POWER LIMIT
-    CPU = -1
-    LIMIT = -1
-    SOCKET = -1
+    _core = -1
+    _limit = -1
+    _socket = -1
     
     # CPU utilities
     _cpu = cpufreq.cpuFreq()
@@ -40,7 +40,7 @@ class CPUEnv(gym.Env):
 
     def __init__(self):        
         # Setup pyRAPL.
-        pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=[self.CPU])
+        pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=[self._core])
 
         # Action space [0,1,2] where:
         #   '0' lower frequency
@@ -69,7 +69,7 @@ class CPUEnv(gym.Env):
             self.count += 1
 
             # Checks whether over power limit before action.
-            overlimit = True if self._current_power > self.LIMIT else False
+            overlimit = True if self._current_power > self._limit else False
 
             ## Modify frequency through action.
             if action == self.RAISE_FREQ:
@@ -80,9 +80,9 @@ class CPUEnv(gym.Env):
 
                     # Modify frequency.
                     freq = self._frequencies[self.position - 1]
-                    self._cpu.set_frequencies(freq, self.CPU)
-                    self._cpu.set_max_frequencies(freq, self.CPU)
-                    self._cpu.set_min_frequencies(freq, self.CPU)
+                    self._cpu.set_frequencies(freq, self._core)
+                    self._cpu.set_max_frequencies(freq, self._core)
+                    self._cpu.set_min_frequencies(freq, self._core)
             elif action == self.LOWER_FREQ:
                 if self.position == self.MIN_FREQ:
                     pass # No action
@@ -91,9 +91,9 @@ class CPUEnv(gym.Env):
 
                     # Modify frequency.
                     freq = self._frequencies[self.position - 1]
-                    self._cpu.set_frequencies(freq, self.CPU)
-                    self._cpu.set_min_frequencies(freq, self.CPU)
-                    self._cpu.set_max_frequencies(freq, self.CPU)
+                    self._cpu.set_frequencies(freq, self._core)
+                    self._cpu.set_min_frequencies(freq, self._core)
+                    self._cpu.set_max_frequencies(freq, self._core)
 
             ## Measure new power consumption.
             meter = pyRAPL.Measurement(label=f"Iter {self.count}")
@@ -101,7 +101,7 @@ class CPUEnv(gym.Env):
             time.sleep(1) # Sleep for a second while CPU works in the background.
             meter.end()
             
-            m_energy = meter._results.pkg[self.SOCKET] # micro-J
+            m_energy = meter._results.pkg[self._socket] # micro-J
             m_time = meter._results.duration # micro-s
             m_power = m_energy / m_time # watts
 
@@ -112,7 +112,7 @@ class CPUEnv(gym.Env):
                 self.reward += self.REWARD_LOWER_ABOVE if overlimit else self.REWARD_LOWER_BELOW
 
             ## Check goal reached.
-            if action == self.RAISE_FREQ and self._current_power > self.LIMIT and m_power <= self.LIMIT:
+            if action == self.RAISE_FREQ and self._current_power > self._limit and m_power <= self._limit:
                 self.done = True
 
             ## Update env values and return.
@@ -129,13 +129,13 @@ class CPUEnv(gym.Env):
 
         # Getting CPU to initial frequency.
         freq = self._frequencies[self.position - 1]
-        self._cpu.set_frequencies(freq, self.CPU)
-        if self._cpu.get_min_freq()[self.CPU] < freq:
-            self._cpu.set_max_frequencies(freq, self.CPU)
-            self._cpu.set_min_frequencies(freq, self.CPU)
+        self._cpu.set_frequencies(freq, self._core)
+        if self._cpu.get_min_freq()[self._core] < freq:
+            self._cpu.set_max_frequencies(freq, self._core)
+            self._cpu.set_min_frequencies(freq, self._core)
         else:
-            self._cpu.set_min_frequencies(freq, self.CPU)
-            self._cpu.set_max_frequencies(freq, self.CPU)
+            self._cpu.set_min_frequencies(freq, self._core)
+            self._cpu.set_max_frequencies(freq, self._core)
 
         # Measure initial power.
         meter = pyRAPL.Measurement(label=f"Iter {self.count}")
@@ -143,7 +143,7 @@ class CPUEnv(gym.Env):
         time.sleep(1) # Sleep for a second while CPU works in the background.
         meter.end()
 
-        m_energy = meter._results.pkg[self.SOCKET] # micro-J
+        m_energy = meter._results.pkg[self._socket] # micro-J
         m_time = meter._results.duration # micro-s
         self._current_power = m_energy / m_time # watts
 
@@ -169,6 +169,6 @@ class CPUEnv(gym.Env):
 
     def set_variables(self, cpu, limit, div = 8):
         # Env characteristics
-        self.CPU = cpu
-        self.LIMIT = limit
-        self.SOCKET = cpu // div
+        self._core = cpu
+        self._limit = limit
+        self._socket = cpu // div
