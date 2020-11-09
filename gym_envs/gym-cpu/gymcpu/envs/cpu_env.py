@@ -19,8 +19,7 @@ class CPUEnv(gym.Env):
     
     # Possible actions
     LOWER_FREQ = 0
-    KEEP_FREQ  = 1
-    RAISE_FREQ = 2
+    RAISE_FREQ = 1
 
     # Possible positions
     MIN_FREQ = 1
@@ -43,7 +42,7 @@ class CPUEnv(gym.Env):
         #   '0' lower frequency
         #   '1' keep frequency
         #   '2' raise frequency
-        self.action_space = gym.spaces.Discrete(3)
+        self.action_space = gym.spaces.Discrete(2)
 
         # Observation space 'self.frequencies':
         self.observation_space = gym.spaces.Discrete(self.MAX_FREQ + 1)
