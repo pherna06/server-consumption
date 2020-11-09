@@ -5,15 +5,20 @@ import sys
 
 # Handle script argv
 args = len(sys.argv)
-core = 0
-div = 8 # Socket size.
-if args == 3:
-    core = int(sys.argv[1])
-    div = int(sys.argv[2])
+_interval = 1
+_core = 0
+_div = 8 # Socket size.
+if args == 4:
+    _interval = float(sys.argv[1])
+    _core = int(sys.argv[2])
+    _div = int(sys.argv[3])
+elif args == 3:
+    _interval = float(sys.argv[1])
+    _core = int(sys.argv[2])
 elif args == 2:
-    core = int(sys.argv[1])
+    _core = int(sys.argv[1])
 
-socket = core // div
+_socket = _core // _div
 
 # Energy measurement setup.
 pyRAPL.setup(devices = [pyRAPL.Device.PKG])
@@ -39,10 +44,10 @@ for freq in available_freqs[0:]:
     meter = pyRAPL.Measurement(f"{int(freq/1000)} MHz")
     
     meter.begin()
-    time.sleep(1) # Measure power.
+    time.sleep(_interval) # Measure power.
     meter.end()
 
-    m_energy = meter._results.pkg[socket] # micro-J
+    m_energy = meter._results.pkg[_socket] # micro-J
     m_time = meter._results.duration # micro-s
     m_power = m_energy / m_time # watts
 
