@@ -30,7 +30,7 @@ def run_test(env, verbose=False):
 
 def main():
     env = gym.make('CPUEnv-v0')
-    env.env.set_variables(CPU, LIMIT)
+    env.env.set_variables(core, limit)
     sum_reward = run_test(env, verbose=True)
 
     history = []
@@ -45,9 +45,10 @@ def main():
 # Handle script argv
 args = len(sys.argv)
 core = None
+limit = None
 if args == 3:
-    CPU = int(sys.argv[1])
-    LIMIT = int(sys.argv[2])
+    core = int(sys.argv[1])
+    limit = int(sys.argv[2])
 else:
     print("ERROR: not enough arguments.")
     exit()
