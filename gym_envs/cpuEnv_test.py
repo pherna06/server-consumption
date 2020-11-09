@@ -1,5 +1,6 @@
 import gym
 import gymcpu
+import sys
 
 def run_test(env, verbose=False):
     env.reset()
@@ -28,7 +29,7 @@ def run_test(env, verbose=False):
     return sum_reward
 
 def main():
-    env = gym.make('CPUEnv-v0')
+    env = gym.make('CPUEnv-v0', CPU, LIMIT)
     sum_reward = run_test(env, verbose=True)
 
     history = []
@@ -39,6 +40,16 @@ def main():
 
     avg_sum_reward = sum(history) / len(history)
     print(f"\nbaseline cumulative reward: {avg_sum_reward:6.2}")
+
+# Handle script argv
+args = len(sys.argv)
+core = None
+if args == 3:
+    CPU = int(sys.argv[1])
+    LIMIT = int(sys.argv[2])
+else:
+    print("ERROR: not enough arguments.")
+    exit()
 
 if __name__ == "__main__":
     main()

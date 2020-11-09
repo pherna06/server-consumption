@@ -8,10 +8,9 @@ import time
 
 class CPUEnv(gym.Env):
     # POWER LIMIT
-    CPU = 0
-    LIMIT = 0
-
-    SOCKET = CPU // 8
+    CPU = -1
+    LIMIT = -1
+    SOCKET = -1
     
     # CPU utilities
     _cpu = cpufreq.cpuFreq()
@@ -39,7 +38,12 @@ class CPUEnv(gym.Env):
     
     metadata = { 'render.modes': ['human'] }
 
-    def __init__(self):
+    def __init__(self, cpu, limit, div = 8):
+        # Env characteristics
+        self.CPU = cpu
+        self.LIMIT = limit
+        self.SOCKET = cpu // 8
+        
         # Setup pyRAPL.
         pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=[self.CPU])
 
