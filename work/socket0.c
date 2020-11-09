@@ -17,7 +17,7 @@ int main()
                 "/usr/bin/taskset",
                 "taskset", "-c", i,
                 "/home/pherna06/venv-esfinge/server-consumption/work/test");
-            break;
+            return;
         }        
     }
 
@@ -28,4 +28,6 @@ int main()
     {
         kill(pid[i], SIGKILL);
     }
+
+    return 0;
 }
