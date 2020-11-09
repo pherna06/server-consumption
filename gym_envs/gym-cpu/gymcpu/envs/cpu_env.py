@@ -123,7 +123,7 @@ class CPUEnv(gym.Env):
             ## Update env values and return.
             self.info['delta'] = m_power - self._current_power
             self.info['power'] = m_power
-            self.current_power = m_power
+            self._current_power = m_power
             self.state = self.position
 
             return [self.state, self.reward, self.done, self.info]
@@ -141,6 +141,16 @@ class CPUEnv(gym.Env):
         else:
             self._cpu.set_min_frequencies(freq, self.CPU)
             self._cpu.set_max_frequencies(freq, self.CPU)
+
+        # Measure initial power.
+        meter = pyRAPL.Measurement(label=f"Iter {self.count}")
+        meter.begin()
+        time.sleep(1) # Sleep for a second while CPU works in the background.
+        meter.end()
+
+        m_energy = meter._results.pkg[self.SOCKET] # micro-J
+        m_time = meter._results.duration # micro-s
+        self._current_power = m_energy / m_time # watts
 
         # state is frequency position
         self.state = self.position
