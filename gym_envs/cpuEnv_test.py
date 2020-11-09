@@ -39,3 +39,6 @@ def main():
 
     avg_sum_reward = sum(history) / len(history)
     print(f"\nbaseline cumulative reward: {avg_sum_reward:6.2}")
+
+if __name__ == "__main__":
+    main()
