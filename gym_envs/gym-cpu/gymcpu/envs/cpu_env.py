@@ -10,6 +10,8 @@ class CPUEnv(gym.Env):
     # POWER LIMIT
     CPU = 0
     LIMIT = 0
+
+    SOCKET = CPU // 8
     
     # CPU utilities
     _cpu = cpufreq.cpuFreq()
@@ -100,7 +102,7 @@ class CPUEnv(gym.Env):
             time.sleep(1) # Sleep for a second while CPU works in the background.
             meter.end()
             
-            m_energy = meter._results.pkg # micro-J
+            m_energy = meter._results.pkg[self.SOCKET] # micro-J
             m_time = meter._results.duration # micro-s
             m_power = m_energy / m_time # watts
 
