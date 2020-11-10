@@ -14,11 +14,7 @@ for i in range(8):
         process(i)
         exit()
 
-print("Press any key to kill processes.")
-try:
-    input()
-except SyntaxError:
-    pass
+c = input("Press any key to kill processes.")
 
 for i in range(8):
     os.kill(pid[i], signal.SIGKILL)
