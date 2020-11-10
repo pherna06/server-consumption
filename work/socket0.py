@@ -3,10 +3,10 @@ import signal
 import random
 
 def process(core):
-    x = random.randomint(1, 10000))
+    x = random.randomint(1, 10000)
     while True:
         x += x * 3 % x
-        
+
 pid = []
 for i in range(8):
     pid.append(os.fork())
