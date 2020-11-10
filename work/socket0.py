@@ -14,7 +14,7 @@ for i in range(8):
         process(i)
         exit()
 
-os.system('read -n 1 -s -r -p "Press any key to continue"')
+os.system('read -p "Press Enter to continue"')
 
 for i in range(8):
     os.kill(pid[i], signal.SIGKILL)
