@@ -30,15 +30,15 @@ def run_test(env, verbose=False):
 
 def main():
     env = gym.make('CPUEnv-v0')
-    env.set_rapl(core, limit)
+    env.set_rapl(socket, limit)
     run_test(env, verbose=True)
 
 # Handle script argv
 args = len(sys.argv)
-core = None
+socket = None
 limit = None
 if args == 3:
-    core = int(sys.argv[1])
+    socket = int(sys.argv[1])
     limit = int(sys.argv[2])
 else:
     print("ERROR: not enough arguments.")

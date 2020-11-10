@@ -8,9 +8,9 @@ import time
 
 class CPUEnv(gym.Env):
     # POWER LIMIT
-    _core = -1
-    _limit = -1
     _socket = -1
+    _corelist = -1
+    _limit = -1
     
     # CPU utilities
     _cpu = cpufreq.cpuFreq()
@@ -74,9 +74,9 @@ class CPUEnv(gym.Env):
 
                     # Modify frequency.
                     freq = self._frequencies[self.position - 1]
-                    self._cpu.set_frequencies(freq, self._core)
-                    self._cpu.set_max_frequencies(freq, self._core)
-                    self._cpu.set_min_frequencies(freq, self._core)
+                    self._cpu.set_frequencies(freq, self._corelist)
+                    self._cpu.set_max_frequencies(freq, self._corelist)
+                    self._cpu.set_min_frequencies(freq, self._corelist)
             elif action == self.LOWER_FREQ:
                 if self.position == self.MIN_FREQ:
                     pass # No action
@@ -85,9 +85,9 @@ class CPUEnv(gym.Env):
 
                     # Modify frequency.
                     freq = self._frequencies[self.position - 1]
-                    self._cpu.set_frequencies(freq, self._core)
-                    self._cpu.set_min_frequencies(freq, self._core)
-                    self._cpu.set_max_frequencies(freq, self._core)
+                    self._cpu.set_frequencies(freq, self._corelist)
+                    self._cpu.set_min_frequencies(freq, self._corelist)
+                    self._cpu.set_max_frequencies(freq, self._corelist)
 
             ## Measure new power consumption.
             meter = pyRAPL.Measurement(label=f"Iter {self.count}")
@@ -123,13 +123,13 @@ class CPUEnv(gym.Env):
 
         # Getting CPU to initial frequency.
         freq = self._frequencies[self.position - 1]
-        self._cpu.set_frequencies(freq, self._core)
-        if self._cpu.get_min_freq()[self._core] < freq:
-            self._cpu.set_max_frequencies(freq, self._core)
-            self._cpu.set_min_frequencies(freq, self._core)
+        self._cpu.set_frequencies(freq, self._corelist)
+        if self._cpu.get_min_freq()[self._corelist] < freq:
+            self._cpu.set_max_frequencies(freq, self._corelist)
+            self._cpu.set_min_frequencies(freq, self._corelist)
         else:
-            self._cpu.set_min_frequencies(freq, self._core)
-            self._cpu.set_max_frequencies(freq, self._core)
+            self._cpu.set_min_frequencies(freq, self._corelist)
+            self._cpu.set_max_frequencies(freq, self._corelist)
 
         # Measure initial power.
         meter = pyRAPL.Measurement(label=f"Reset")
@@ -161,11 +161,11 @@ class CPUEnv(gym.Env):
     def close(self):
         pass
 
-    def set_rapl(self, cpu, limit, div = 8):
+    def set_rapl(self, socket, limit, socket_size = 8):
         # Env characteristics
-        self._core = cpu
+        self._socket = socket
         self._limit = limit
-        self._socket = cpu // div
+        self._corelist = list( range(socket_size * socket, socket_size * (socket + 1)) )
 
         # Setup pyRAPL.
         pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=[self._core])
