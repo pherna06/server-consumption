@@ -1,12 +1,12 @@
 import os
 import signal
+import random
 
 def process(core):
-    command = "taskset -c " + str(core) + " "
-    command += "/home/pherna06/venv-esfinge/server-consumption/work/test"
-
-    os.system(command)
-
+    x = random.randomint(1, 10000))
+    while True:
+        x += x * 3 % x
+        
 pid = []
 for i in range(8):
     pid.append(os.fork())
