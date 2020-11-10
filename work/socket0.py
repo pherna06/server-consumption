@@ -3,7 +3,7 @@ import signal
 import random
 
 def process(core):
-    x = random.randomint(1, 10000)
+    x = random.randint(1, 10000)
     while True:
         x += x * 3 % x
 
