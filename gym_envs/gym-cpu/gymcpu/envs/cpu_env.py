@@ -168,6 +168,6 @@ class CPUEnv(gym.Env):
         self._corelist = list( range(socket_size * socket, socket_size * (socket + 1)) )
 
         # Setup pyRAPL.
-        pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=[self._core])
+        pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=[self._socket])
 
         self.reset()
