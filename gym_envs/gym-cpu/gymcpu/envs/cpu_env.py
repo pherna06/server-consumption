@@ -124,7 +124,7 @@ class CPUEnv(gym.Env):
         # Getting CPU to initial frequency.
         freq = self._frequencies[self.position - 1]
         self._cpu.set_frequencies(freq, self._corelist)
-        if self._cpu.get_min_freq()[self._corelist] < freq:
+        if self._cpu.get_min_freq()[self._corelist[0]] < freq:
             self._cpu.set_max_frequencies(freq, self._corelist)
             self._cpu.set_min_frequencies(freq, self._corelist)
         else:
