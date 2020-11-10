@@ -18,5 +18,5 @@ print("Press Enter to continue")
 os.system("read REPLY")
 
 for i in range(8):
-    print(f"Killing process {pid[i]}.")
+    print(f"Killing process {int(pid[i])}.")
     os.kill(pid[i], signal.SIGKILL)
