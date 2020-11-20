@@ -1,12 +1,13 @@
 
-from gymcpu.envs.cpu_env import CPUEnv
 from ray.tune.registry import register_env
 import gym
+import gymcpu
 import os
 import sys
 import ray
 import ray.rllib.agents.ppo as ppo
 import shutil
+import pyRAPL
 
 argslen = len(sys.argv)
 _socket = None
@@ -35,7 +36,9 @@ def main():
     ray.init(ignore_reinit_error=True)
 
     select_env = "CPUEnv-v0"
-    register_env(select_env, create_cpuenv)
+    cpuenv = gym.make(select_env)
+    cpuenv.set_rapl(_socket, _limit)
+    register_env(select_env, lambda config : cpuenv)
 
     config = ppo.DEFAULT_CONFIG.copy()
     config["log_level"] = "WARN"
@@ -62,23 +65,22 @@ def main():
     print(model.base_model.summary())
 
     agent.restore(chkpt_file)
-    env = gym.make(select_env)
 
-    state = env.reset()
+    state = cpuenv.reset()
     sum_reward = 0
 
     n_step = 20
 
     for step in range(n_step):
         action = agent.compute_action(state)
-        state, reward, done, info = env.step(action)
+        state, reward, done, info = cpuenv.step(action)
         sum_reward += reward
 
-        env.render()
+        cpuenv.render()
 
         if done == 1:
             print("cumulative reward", sum_reward)
-            state = env.reset()
+            state = cpuenv.reset()
             sum_reward = 0
 
 

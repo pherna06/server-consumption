@@ -27,7 +27,7 @@ class CPUEnv(gym.Env):
 
     # Steps limit
     MAX_STEPS = 20
-
+    
     # Rewards
     REWARD_LOWER_BELOW = -2 # Lowering frequency while below power limit penalized.
     REWARD_RAISE_BELOW = -1 # Raising frequency while below power limit slightly penalized.
@@ -90,6 +90,7 @@ class CPUEnv(gym.Env):
                     self._cpu.set_max_frequencies(freq, self._corelist)
 
             ## Measure new power consumption.
+            pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=[self._socket])
             meter = pyRAPL.Measurement(label=f"Iter {self.count}")
             meter.begin()
             time.sleep(1) # Sleep for a second while CPU works in the background.
@@ -132,6 +133,7 @@ class CPUEnv(gym.Env):
             self._cpu.set_max_frequencies(freq, self._corelist)
 
         # Measure initial power.
+        pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=[self._socket])
         meter = pyRAPL.Measurement(label=f"Reset")
         meter.begin()
         time.sleep(1) # Sleep for a second while CPU works in the background.
@@ -166,8 +168,5 @@ class CPUEnv(gym.Env):
         self._socket = socket
         self._limit = limit
         self._corelist = list( range(socket_size * socket, socket_size * (socket + 1)) )
-
-        # Setup pyRAPL.
-        pyRAPL.setup(devices=[pyRAPL.Device.PKG], socket_ids=[self._socket])
 
         self.reset()
