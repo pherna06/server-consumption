@@ -3,6 +3,11 @@ import signal
 import random
 
 def process(core):
+    pid = os.getpid()
+    command = "taskset -cp " + str(core) + " " + str(pid)
+
+    os.system(command)
+
     x = random.randint(1, 10000)
     while True:
         x += x * 3 % x
