@@ -148,11 +148,12 @@ def produce_logs(workstr, results):
         csvf.write(f"{freq}\n")
         logf.write(f"Frequency: {freqmhz} MHz\n")
         logf.write("-------------------------\n") # 25-
-        logf.write("CPU   Time (s)\n")
+        logf.write("CPU   Time (sm)\n")
 
         for core in sorted(results[freq]):
-            csvf.write(f"{core}, {results[freq][core]}\n")
-            logf.write(f"{core:<3}   {results[freq][core]:.3f}\n")
+            timems = results[freq][core] * 1000
+            csvf.write(f"{core}, {timems}\n")
+            logf.write(f"{core:<3}   {timems:.3f}\n")
 
         logf.write("####################\n\n") # 25#
 
@@ -172,8 +173,8 @@ def int_product(size):
         :return: execution time of matrix product
     """
     # Random matrix generation.
-    matA = np.random.randint(MAX_INT, size=(MATRIX_SIZE, MATRIX_SIZE))
-    matB = np.random.randint(MAX_INT, size=(MATRIX_SIZE, MATRIX_SIZE))
+    matA = np.random.randint(MAX_INT, size=(size, size))
+    matB = np.random.randint(MAX_INT, size=(size, size))
 
     # TIME: operation.
     start = time.time()
@@ -185,7 +186,7 @@ def int_product(size):
 def float_product(size):
     """
         float_product performs a product of real matrices and measures
-        execution time. Matrice dimension is :size: x :size:.
+        execution time. Matrices dimension is :size: x :size:.
 
         :size: dimension of square matrix
         :return: execution time of matrix product
@@ -201,9 +202,130 @@ def float_product(size):
 
     return (end - start)
 
+def int_transpose(size):
+    """
+        int_transpose performs the repeated transposition of an integer matrix
+        and measures execution time. Matrix dimension is :size: x :size:.
+
+        :size: dimension of square matrix
+        :return: execution time of matrix transposition
+    """
+    # Random matrix generation.
+    matA = np.random.randint(MAX_INT, size=(size, size))
+
+    # TIME: operation.
+    start = time.time()
+    matA = matA.transpose().copy()
+    matA = matA.transpose().copy()
+    end = time.time()
+
+    return (end - start)
+
+def float_transpose(size):
+    """
+        float_transpose performs the repeated transposition of a real matrix
+        and measures execution time. Matrix dimension is :size: x :size:.
+
+        :size: dimension of square matrix
+        :return: execution time of matrix transposition
+    """
+    # Random matrix generation
+    matA = np.random.rand(size, size)
+
+    # TIME: operation
+    start = time.time()
+    matA = matA.transpose().copy()
+    matA = matA.transpose().copy()
+    end = time.time()
+
+    return (end - start)
+
+def int_sort(size):
+    """
+        int_sort performs the sorting of a random integer array and
+        measures execution time. Array dimension is :size: * :size:.
+
+        :size: square-rooted dimension of array length
+        :return: execution time of sorting
+    """
+    # Random array generation
+    arrayA = np.random.randint(MAX_INT, size=(size*size))
+
+    # TIME: operation
+    start = time.time()
+    arrayB = np.sort(arrayA)
+    end = time.time()
+
+    return (end - start)
+
+def float_sort(size):
+    """
+        float_sort performs the sorting of a random real array and
+        measures execution time. Array dimension is :size: * :size:.
+
+        :size: square-rooted dimension of array length
+        :return: execution time of sorting
+    """
+    # Random array generation
+    arrayA = np.random.rand(size*size)
+
+    # TIME: operation
+    start = time.time()
+    arrayB = np.sort(arrayA)
+    end = time.time()
+
+    return (end - start)
+
+def int_scalar(size):
+    """
+        int_scalar performs the sum of a random integer to each element of
+        a random integer matrix. Matrix dimension is :size: x :size:.
+
+        :size: dimension of square matrix
+        :return: execution time of scalar sum
+    """
+    # Random matrix generation
+    matA = np.random.randint(MAX_INT, size=(size, size))
+    intN = np.random.randint(MAX_INT)
+
+    # TIME: operation.
+    start = time.time()
+    matB = matA + intN
+    end = time.time()
+
+    return (end - start)
+
+
+def float_scalar(size):
+    """
+        float_scalar performs the sum of a random real number to each
+        element of a random real matrix. Matrix dimension is :size: x :size:.
+
+        :size: dimension of square matrix
+        :Return: execution time of scalar sum
+    """
+    # Randopm amtrix generation
+    matA = np.random.rand(size, size)
+    floatN = np.random.rand()
+
+    # TIME: operation
+    start = time.time()
+    matB = matA + floatN
+    end = time.time()
+
+    return (end - start)
+
+
+
 OPERATIONS = {
         'intproduct': int_product,
-        'floatproduct': float_product
+        'floatproduct': float_product,
+        'inttranspose': int_transpose,
+        'floattranspose': float_transpose,
+        'intsort': int_sort,
+        'floatsort': float_sort,
+        'intscalar': int_scalar,
+        'floatscalar': float_scalar
         }
 
 ########################################################
@@ -338,14 +460,28 @@ def main():
         freqs = AVAILABLE_FREQS
 
     size = args.dim
-    
+
+
+    # TODO clearly simplify.
     if args.work == 'intproduct':
         test_operation('intproduct', freqs, rg, size)
     if args.work == 'floatproduct':
         test_operation('floatproduct', freqs, rg, size)
-    if args.work == 'sort':
-        pass
 
+    if args.work == 'inttranspose':
+        test_operation('inttranspose', freqs, rg, size)
+    if args.work == 'floattranspose':
+        test_operation('floattranspose', freqs, rg, size)
+
+    if args.work == 'intsort':
+        test_operation('intsort', freqs, rg, size)
+    if args.work == 'floatsort':
+        test_operation('floatsort', freqs, rg, size)
+                
+    if args.work == 'intscalar':
+        test_operation('intscalar', freqs, rg, size)
+    if args.work == 'floatscalar':
+        test_operation('floatscalar', freqs, rg, size)
 
 if __name__ == '__main__':
     main()
