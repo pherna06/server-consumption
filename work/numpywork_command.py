@@ -12,7 +12,7 @@ CPU_LIST = list(range(16))
 SOCKET_LIST = [0, 1]
 SOCKET_DICT = {
         0: CPU_LIST[0:8], 
-        1: CPU_LIST[9:16]
+        1: CPU_LIST[8:16]
         }
 
 # DEFAULT RANDOM MATRICES SIZE.
@@ -110,7 +110,7 @@ def process_fork(work, core, size, wpath, lock):
 
     # Pick work operation:
     op = OPERATIONS[work]
-    worktime = op(size)
+    worktime = op(size) * 1000 #ms
 
     # Write in forks file.
     with FileLock(lock):
@@ -148,10 +148,10 @@ def produce_logs(workstr, results):
         csvf.write(f"{freq}\n")
         logf.write(f"Frequency: {freqmhz} MHz\n")
         logf.write("-------------------------\n") # 25-
-        logf.write("CPU   Time (sm)\n")
+        logf.write("CPU   Time (ms)\n")
 
         for core in sorted(results[freq]):
-            timems = results[freq][core] * 1000
+            timems = results[freq][core]
             csvf.write(f"{core}, {timems}\n")
             logf.write(f"{core:<3}   {timems:.3f}\n")
 
@@ -416,7 +416,7 @@ def get_parser():
 
     freq_help =  "FREQ frequencies in which the selected operation will be tested.\n"
     freq_help += "all available frequencies set by default"
-    parser.add_argument('-f', '--freq', help=freq_help, nargs='+', default=argparse.SUPPRESS)
+    parser.add_argument('-f', '--freq', help=freq_help, nargs='+', type=int, default=argparse.SUPPRESS)
 
     dim_help = "random matrices dimension: DIM x DIM.\n"
     dim_help += "set to {} by default".format(MATRIX_SIZE)
@@ -455,7 +455,7 @@ def main():
     if 'freq' in args:
         userfs = args.freq
         for freq in userfs:
-            freqs.append( closest_frequency(freq * 1000 ) )
+            freqs.append( closest_frequency(freq * 1000) )
     else:
         freqs = AVAILABLE_FREQS
 
