@@ -1,4 +1,4 @@
-
+from gymcpu.envs.cpu_env import CPUEnv
 from ray.tune.registry import register_env
 import gym
 import gymcpu
@@ -19,13 +19,6 @@ else:
     print("ERROR: not enough arguments.")
     exit()
 
-
-def create_cpuenv(env_config):
-    env = gym.make("CPUEnv-v0")
-    env.set_rapl(_socket, _limit)
-
-    return env
-
 def main():
     chkpt_root = "tmp/exa"
     shutil.rmtree(chkpt_root, ignore_errors=True, onerror=None)
@@ -36,12 +29,16 @@ def main():
     ray.init(ignore_reinit_error=True)
 
     select_env = "CPUEnv-v0"
-    cpuenv = gym.make(select_env)
-    cpuenv.set_rapl(_socket, _limit)
-    register_env(select_env, lambda config : cpuenv)
+    register_env(select_env, lambda env_config: CPUEnv(**env_config))
 
     config = ppo.DEFAULT_CONFIG.copy()
     config["log_level"] = "WARN"
+    config["num_workers"] = 1
+    config["env_config"] = {
+            'socket': _socket,
+            'limit': _limit,
+            'time': 0.001
+            }
     agent = ppo.PPOTrainer(config, env=select_env)
 
     status = "{:2d} reward {:6.2f}/{:6.2f}/{:6.2f} len {:4.2f} saved {}"
@@ -66,13 +63,15 @@ def main():
 
     agent.restore(chkpt_file)
 
+    cpuenv = gym.make(select_env, **config['env_config'])
+
     state = cpuenv.reset()
     sum_reward = 0
 
     n_step = 20
 
     for step in range(n_step):
-        action = agent.compute_action(state)
+        action = policy.compute_actions(state)
         state, reward, done, info = cpuenv.step(action)
         sum_reward += reward
 

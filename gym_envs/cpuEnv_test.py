@@ -6,7 +6,7 @@ def run_test(env, verbose=False):
     env.reset()
     sum_reward = 0
 
-    for i in range(env.MAX_STEPS):
+    for i in range(env.MAXSTEPS):
         action = env.action_space.sample()
 
         if verbose:
@@ -29,20 +29,14 @@ def run_test(env, verbose=False):
     return sum_reward
 
 def main():
-    env = gym.make('CPUEnv-v0')
-    env.set_rapl(socket, limit)
-    run_test(env, verbose=True)
+    kwargs = {
+        'socket': 0,
+        'cores': [0,1,2,3,4,5,6,7],
+        'limit': 40,
+    }
 
-# Handle script argv
-args = len(sys.argv)
-socket = None
-limit = None
-if args == 3:
-    socket = int(sys.argv[1])
-    limit = int(sys.argv[2])
-else:
-    print("ERROR: not enough arguments.")
-    exit()
+    env = gym.make('CPUEnv-v0', **kwargs)
+    run_test(env, verbose=True)
 
 if __name__ == "__main__":
     main()

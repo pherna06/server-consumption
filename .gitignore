@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+gym_envs/tmp/*
+
 # C extensions
 *.so
 
