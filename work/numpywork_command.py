@@ -206,6 +206,13 @@ def produce_logs(workstr, time_results, power_results):
             time_csvf.write(f"{core}, {timems}\n")
             time_logf.write(f"{core:<3}   {timems:.3f}\n")
 
+        time_mean = time_results[freq][-1]
+
+        time_csvf.write(f"-1, {time_mean}\n")
+
+        time_logf.write("-------------------------\n") # 25-
+        time_logf.write(f"Mean: {time_mean:.3f} ms")
+
         time_logf.write("##########################\n\n") # 25#
         
         # POWER LOG
@@ -217,6 +224,13 @@ def produce_logs(workstr, time_results, power_results):
             power = power_results[freq][skt]
             power_csvf.write(f"{skt}, {power}\n")
             power_logf.write(f"{skt:<6}   {power:.3f}\n")
+
+        power_mean = power_results[freq][-1]
+
+        power_csvf.write("-1, {power_mean}")
+        
+        power_logf.write("-------------------------\n")# 25-
+        power_logf.write(f"Mean: {power_mean:.3f} w")
 
         power_logf.write("#########################\n\n") # 25#
 
@@ -481,7 +495,7 @@ def test_operation(work, freqs, sockets, mtime, size):
     for freq in freqs:
         raise_frequency(freq, rg)
 
-        print(f"Execution time with {int(freq/1000)} MHz.")
+        print(f"Measuring execution time with {int(freq/1000)} MHz.")
         
         # Remove conflicting file.
         if os.path.exists(timepath):
@@ -508,6 +522,7 @@ def test_operation(work, freqs, sockets, mtime, size):
         wflines = wf.readlines()
         wf.close()
         
+        time_sum = 0.0
         time_results[freq] = {}
         for line in wflines:
             corestr, worktimestr = line.split()
@@ -515,6 +530,13 @@ def test_operation(work, freqs, sockets, mtime, size):
             worktime = float(worktimestr)
 
             time_results[freq][core] = worktime
+            time_sum += worktime
+
+        # Time mean.
+        count = len(wflines)
+        time_results[freq][-1] = time_sum / count
+
+        print(f"Mean execution time: {time_results[freq][-1]:.3f} ms")
 
     os.remove(timepath)
 
@@ -523,7 +545,7 @@ def test_operation(work, freqs, sockets, mtime, size):
     for freq in freqs:
         raise_frequency(freq, rg)
 
-        print(f"Power consumption with {int(freq/1000)} MHz.")
+        print(f"Measuring power consumption with {int(freq/1000)} MHz.")
 
         # Remove conflicting file.
         if os.path.exists(powerpath):
@@ -553,11 +575,21 @@ def test_operation(work, freqs, sockets, mtime, size):
 
         # Get measurements.
         timerapl = meter._results.duration
+
+        power_sum = 0.0
         power_results[freq] = {}
         for skt in sockets:
             energyrapl = meter._results.pkg[skt]
             power = energyrapl / timerapl
+
             power_results[freq][skt] = power
+            power_sum += power
+
+        # Power mean.
+        count = len(sockets)
+        power_results[freq][-1] = power_sum / count
+
+        print(f"Mean power consumption: {power_results[freq][-1]:.3f} W")
 
     os.remove(powerpath)
     os.remove(lock)
