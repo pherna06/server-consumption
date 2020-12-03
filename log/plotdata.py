@@ -48,20 +48,27 @@ def get_results():
 
     return results
 
-def plot_data(work, data, results):
+def format_results(results):
+    formatted = {}
+
+    for work in results:
+        formatted[work] = {}
+        for data in results[work]:
+            formatted[work][data] = {}
+            for freq in results[work][data]:
+                for item in results[work][data][freq]:
+                    if item not in formatted[work][data]:
+                        formatted[work][data][item] = {}
+                    formatted[work][data][item][freq] = results[work][data][freq][item]
+
+    return formatted
+
+
+def plot_items(work, data, results):
     imgpath = IMAGEPATH + work + '.' + data + '.png'
-
     plt.clf()
-    freqs = []
-    itemdata = {}
-    for freq in results:
-        freqs.append(freq)
-        for item in results[freq]:
-            if item not in itemdata:
-                itemdata[item] = []
-            itemdata[item].append( results[freq][item] )
 
-    for item in itemdata:
+    for item in results:
         label = ''
         if data == 'time':
             label = 'Core ' + str(item)
@@ -78,19 +85,49 @@ def plot_data(work, data, results):
             color = 'b'
             linestyle = '-'
 
-        plt.plot(freqs, itemdata[item], label=label, color=color, alpha=alpha, linestyle=linestyle)
+        x, y = zip(*results[item].items())
+        plt.plot(x, y, label=label, color=color, alpha=alpha, linestyle=linestyle)
 
     plt.xlabel('Frequency (KHz)')
     plt.ylabel('Time (ms)' if data == 'time' else 'Power (W)')
 
     plt.savefig(imgpath)
 
+def plot_mean(data, results):
+    imgpath = IMAGEPATH + 'mean.' + data + '.png'
+    plt.clf()
+    
+    colors = 'bgrcmykw'
+    index = 0
+    for work in results:
+        label = work
+        color = colors[index]
+        
+        x, y = zip(*results[work][data][-1].items())
+        plt.plot(x, y, label=label, color=color)
+
+    plt.xlabel('Frequency (KHz)')
+    plt.ylabel('Time (ms)' if data == 'time' else 'Power (w)')
+    plt.legend()
+
+    plt.savefig(imgpath)
+
 def main():
     results = get_results()
+    results = format_results(results)
 
     for work in results:
         for data in results[work]:
-            plot_data(work, data, results[work][data])
+            plot_items(work, data, results[work][data])
+
+    datas = []
+    for work in results:
+        for data in results[work]:
+            datas.append(data)
+        break
+
+    for data in datas:
+        plot_mean(data, results)
 
 
 if __name__ == '__main__':
