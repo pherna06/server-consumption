@@ -105,6 +105,7 @@ def plot_mean(data, results):
         
         x, y = zip(*results[work][data][-1].items())
         plt.plot(x, y, label=label, color=color)
+        index += 1
 
     plt.xlabel('Frequency (KHz)')
     plt.ylabel('Time (ms)' if data == 'time' else 'Power (w)')
