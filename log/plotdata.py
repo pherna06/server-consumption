@@ -63,7 +63,7 @@ def plot_data(work, data, results):
 
     for item in itemdata:
         label = ''
-        alpha = 0.7
+        alpha = 0.3
         if data == 'time':
             label = 'Core ' + str(item)
         elif data == 'power':

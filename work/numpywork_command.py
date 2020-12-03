@@ -36,6 +36,10 @@ LOG_PATH = "/home/pherna06/venv-esfinge/server-consumption/log/"
 # ENERGY MEASURE
 MEASURE_TIME = 2
 
+# MAX FREQUENCY
+NOMINAL_MAXFREQ = 2601000
+REAL_MAXFREQ = 3000000
+
 #####################
 # UTILITY FUNCTIONS #
 #####################
@@ -155,7 +159,7 @@ def power_fork(work, core, size):
     op = OPERATIONS[work]
     op(size, inf=True) ## INFINITE LOOP ##
 
-def produce_logs(workstr, time_results, power_results):
+def produce_logs(workstr, time_results, power_results, logpath):
     """
         produce_logs writes the time results of :workstr: operation
         in the corresponding log files.
@@ -166,11 +170,11 @@ def produce_logs(workstr, time_results, power_results):
                     in function of frequency and core.
     """
     # Log files paths.
-    time_logpath = LOG_PATH + workstr + '.time.log'
-    time_csvpath = LOG_PATH + workstr + '.time.csv'
+    time_logpath = logpath + workstr + '.time.log'
+    time_csvpath = logpath + workstr + '.time.csv'
 
-    power_logpath = LOG_PATH + workstr + '.power.log'
-    power_csvpath = LOG_PATH + workstr + '.power.csv'
+    power_logpath = logpath + workstr + '.power.log'
+    power_csvpath = logpath + workstr + '.power.csv'
 
     # Removing previous log files.
     if os.path.exists(time_logpath):
@@ -191,10 +195,14 @@ def produce_logs(workstr, time_results, power_results):
     power_csvf = open(power_csvpath, 'w')
 
     for freq in time_results:
-        freqmhz = int(freq/1000)
+        logfreq = freq
+        if freq == NOMINAL_MAXFREQ:
+            logfreq = REAL_MAXFREQ
+
+        freqmhz = int(logfreq/1000)
         
-        time_csvf.write(f"{freq}\n")
-        power_csvf.write(f"{freq}\n")
+        time_csvf.write(f"{logfreq}\n")
+        power_csvf.write(f"{logfreq}\n")
         
         # TIME LOG
         time_logf.write(f"Frequency: {freqmhz} MHz\n")
@@ -462,7 +470,7 @@ OPERATIONS = {
 ########################################################
 
 
-def test_operation(work, freqs, sockets, mtime, size):
+def test_operation(work, freqs, sockets, mtime, size, log):
     """
         test_operation sets the environment to take measures of 
         the operation specified in :work: parameter.
@@ -476,6 +484,7 @@ def test_operation(work, freqs, sockets, mtime, size):
         :sockets: sockets in whose cores the operation will be executed
         :mtime: wait time to measure energy consumption of operation
         :size: dimension of elements in the operation
+        :log: path of log files. If None, no log files are produced
     """
     # Get implied CPU cores from sockets.
     rg = get_cores(sockets)
@@ -599,7 +608,8 @@ def test_operation(work, freqs, sockets, mtime, size):
     os.remove(lock)
 
     # Writing log files
-    produce_logs(work, time_results, power_results)
+    if log is not None:
+        produce_logs(work, time_results, power_results, log)
     
 
 ############################################################
@@ -625,6 +635,10 @@ def get_parser():
     time_help = "time (seconds) spent in measuring energy consumption for each frequency"
     time_help += "set to {} seconds by default".format(MEASURE_TIME)
     parser.add_argument('-t', '--time', help=time_help, type=int, default=MEASURE_TIME)
+
+    log_help = "produces log files in LOG path where results are stored.\n"
+    log_help += "set to '{}' by default.".format(LOG_PATH)
+    parser.add_argument('-l', '--log', help=log_help, type=str, nargs='?', const=LOG_PATH, default=argparse.SUPPRESS)
     
     # Positional arguments.
     work_help = "numpy action to be tested: intproduct transpose sort"
@@ -663,27 +677,31 @@ def main():
     size = args.dim
     mtime = args.time
 
+    # Set log flag.
+    log = None
+    if 'log' in args:
+        log = args.log
 
     # TODO clearly simplify.
     if args.work == 'intproduct':
-        test_operation('intproduct', freqs, sockets, mtime, size)
+        test_operation('intproduct', freqs, sockets, mtime, size, log)
     if args.work == 'floatproduct':
-        test_operation('floatproduct', freqs, sockets, mtime, size)
+        test_operation('floatproduct', freqs, sockets, mtime, size, log)
 
     if args.work == 'inttranspose':
-        test_operation('inttranspose', freqs, sockets, mtime, size)
+        test_operation('inttranspose', freqs, sockets, mtime, size, log)
     if args.work == 'floattranspose':
-        test_operation('floattranspose', freqs, sockets, mtime, size)
+        test_operation('floattranspose', freqs, sockets, mtime, size, log)
 
     if args.work == 'intsort':
-        test_operation('intsort', freqs, sockets, mtime, size)
+        test_operation('intsort', freqs, sockets, mtime, size, log)
     if args.work == 'floatsort':
-        test_operation('floatsort', freqs, sockets, mtime, size)
+        test_operation('floatsort', freqs, sockets, mtime, size, log)
                 
     if args.work == 'intscalar':
-        test_operation('intscalar', freqs, sockets, mtime, size)
+        test_operation('intscalar', freqs, sockets, mtime, size, log)
     if args.work == 'floatscalar':
-        test_operation('floatscalar', freqs, sockets, mtime, size)
+        test_operation('floatscalar', freqs, sockets, mtime, size, log)
 
 if __name__ == '__main__':
     main()
