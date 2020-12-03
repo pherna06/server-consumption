@@ -202,6 +202,8 @@ def produce_logs(workstr, time_results, power_results):
         time_logf.write("CPU   Time (ms)\n")
 
         for core in sorted(time_results[freq]):
+            if core == -1:
+                continue
             timems = time_results[freq][core]
             time_csvf.write(f"{core}, {timems}\n")
             time_logf.write(f"{core:<3}   {timems:.3f}\n")
@@ -211,7 +213,7 @@ def produce_logs(workstr, time_results, power_results):
         time_csvf.write(f"-1, {time_mean}\n")
 
         time_logf.write("-------------------------\n") # 25-
-        time_logf.write(f"Mean: {time_mean:.3f} ms")
+        time_logf.write(f"Mean: {time_mean:.3f} ms\n")
 
         time_logf.write("##########################\n\n") # 25#
         
@@ -221,16 +223,18 @@ def produce_logs(workstr, time_results, power_results):
         power_logf.write("Socket   Power (w)\n")
 
         for skt in sorted(power_results[freq]):
+            if skt == -1:
+                continue
             power = power_results[freq][skt]
             power_csvf.write(f"{skt}, {power}\n")
             power_logf.write(f"{skt:<6}   {power:.3f}\n")
 
         power_mean = power_results[freq][-1]
 
-        power_csvf.write("-1, {power_mean}")
+        power_csvf.write(f"-1, {power_mean}\n")
         
         power_logf.write("-------------------------\n")# 25-
-        power_logf.write(f"Mean: {power_mean:.3f} w")
+        power_logf.write(f"Mean: {power_mean:.3f} w\n")
 
         power_logf.write("#########################\n\n") # 25#
 

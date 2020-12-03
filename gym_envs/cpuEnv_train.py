@@ -33,7 +33,7 @@ def main():
 
     config = ppo.DEFAULT_CONFIG.copy()
     config["log_level"] = "WARN"
-    config["num_workers"] = 1
+    config["num_workers"] = 0
     config["env_config"] = {
             'socket': _socket,
             'limit': _limit,
@@ -71,7 +71,7 @@ def main():
     n_step = 20
 
     for step in range(n_step):
-        action = policy.compute_actions(state)
+        action = agent.compute_action(state)
         state, reward, done, info = cpuenv.step(action)
         sum_reward += reward
 
