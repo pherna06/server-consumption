@@ -2,6 +2,16 @@ import os
 import matplotlib.pyplot as plt
 
 IMAGEPATH = 'img/'
+STYLES = {
+        'intproduct': 'r-',
+        'floatproduct': 'r:',
+        'inttranspose': 'b-',
+        'floattranspose': 'b:',
+        'intscalar': 'g-',
+        'floatscalar': 'g:',
+        'intsort': 'o-',
+        'floatsort': 'o:'
+        }
 
 def get_file_data(csv):
     csvf = open(csv, 'r')
@@ -97,15 +107,11 @@ def plot_mean(data, results):
     imgpath = IMAGEPATH + 'mean.' + data + '.png'
     plt.clf()
     
-    colors = 'bgrcmykw'
-    index = 0
     for work in results:
         label = work
-        color = colors[index]
         
         x, y = zip(*results[work][data][-1].items())
-        plt.plot(x, y, label=label, color=color)
-        index += 1
+        plt.plot(x, y, STYLES[work], label=label)
 
     plt.xlabel('Frequency (KHz)')
     plt.ylabel('Time (ms)' if data == 'time' else 'Power (w)')
