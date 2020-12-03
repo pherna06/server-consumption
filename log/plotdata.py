@@ -9,8 +9,8 @@ STYLES = {
         'floattranspose': 'b:',
         'intscalar': 'g-',
         'floatscalar': 'g:',
-        'intsort': 'o-',
-        'floatsort': 'o:'
+        'intsort': 'y-',
+        'floatsort': 'y:'
         }
 
 def get_file_data(csv):
