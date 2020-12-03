@@ -63,16 +63,22 @@ def plot_data(work, data, results):
 
     for item in itemdata:
         label = ''
-        alpha = 0.3
         if data == 'time':
             label = 'Core ' + str(item)
         elif data == 'power':
             label = 'Socket ' + str(item)
-        elif item == -1:
+        if item == -1:
             label = 'Mean'
-            alpha = 1.0
 
-        plt.plot(freqs, itemdata[item], label=label, color='k', alpha=alpha)
+        alpha = 0.3
+        color = 'k'
+        linestyle = ':'
+        if item == -1:
+            alpha = 1.0
+            color = 'b'
+            linestyle = '-'
+
+        plt.plot(freqs, itemdata[item], label=label, color=color, alpha=alpha, linestyle=linestyle)
 
     plt.xlabel('Frequency (KHz)')
     plt.ylabel('Time (ms)' if data == 'time' else 'Power (W)')
