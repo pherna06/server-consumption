@@ -157,7 +157,7 @@ def set_minimum(freq, rg = None):
         Parameters
         ----------
         freq : int
-            The desired minimum frequency, in MHz. It must be over the CPU
+            The desired minimum frequency, in KHz. It must be over the CPU
             overall minimum frequency; an exception will be raised otherwise.
         rg : int, list
             An integer or list of integers with the indices of CPU cores whose
@@ -186,7 +186,7 @@ def set_maximum(freq, rg = None):
         Parameters
         ----------
         freq : int
-            The desired maximum frequency, in MHz. It must be below the CPU
+            The desired maximum frequency, in KHz. It must be below the CPU
             overall maximum frequency; an exception will be raised otherwise.
         rg : int, list
             An integer or list of integers with the indices of CPU cores whose
@@ -215,7 +215,7 @@ def set_frequency(freq, rg = None, limits = True):
         Parameters
         ----------
         freq : int
-            The specified frequency, in MHz and within _available_freqs.
+            The specified frequency, in KHz and within _available_freqs.
         rg : int, list
             An integer or list of integers with the indices of CPU cores whose
             frequency will be modified. If None, all online CPU cores will be
@@ -297,7 +297,7 @@ def closest_frequency(freq):
         Parameters
         ----------
         freq : int
-            The specified frequency, in MHz, to be approximated. Must not be
+            The specified frequency, in KHz, to be approximated. Must not be
             smaller than the minimum available_frequency.
 
         Returns

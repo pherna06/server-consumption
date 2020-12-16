@@ -40,218 +40,9 @@ MEASURE_TIME = 2
 NOMINAL_MAXFREQ = 2601000
 REAL_MAXFREQ = 3000000
 
-#####################
-# UTILITY FUNCTIONS #
-#####################
-
-def closest_frequency(freq):
-    """
-        closest_frequency calculates the minimum available frequency 
-        which is greater or equal than the given frequency. 
-        If given frequency is below the minimum allowed frequency 
-        an error is raised.
-
-        :freq: given frequency
-        :return: minimum frequency greater or equal than :freq:
-    """
-    
-    # Minimum frequency allowed by CPU.
-    minf = AVAILABLE_FREQS[0]
-
-    # Check if correct.
-    if freq < minf:
-        print(f"ERROR: Specified frequency {freq} is below the minimum allowed frequency {minf}.")
-        exit()
-
-    # Get minimum frequency greater(=) than 'freq'.
-    selfreq = AVAILABLE_FREQS[0]
-    for af in AVAILABLE_FREQS:
-        if freq <= selfreq:
-            break
-        selfreq = af
-
-    return selfreq
-
-def lower_frequency(freq, rg):
-    """
-        lower_frequency sets the cores in :rg: to :freq: frequency,
-        supposed that their actual frequencies are greater than :freq:.
-
-        :freq: new lower frequency
-        :rg: CPU cores to modify
-    """
-    cpu = cpufreq.cpuFreq()
-    cpu.set_min_frequencies(freq, rg)
-    cpu.set_max_frequencies(freq, rg)
-    cpu.set_frequencies(freq, rg)
-
-def raise_frequency(freq, rg):
-    """
-        raise_frequency sets the cores in :rg: to :freq: frequency,
-        supposed that their actual frequencyes are lower than :freq:.
-
-        :freq: new greater frequency
-        :rg: CPU cores to modify
-    """
-    cpu = cpufreq.cpuFreq()
-    cpu.set_max_frequencies(freq, rg)
-    cpu.set_min_frequencies(freq, rg)
-    cpu.set_frequencies(freq, rg)
-
-def get_cores(sockets):
-    """
-        get_cores retrieves the cores assigned to the socket ids
-        in :sockets:
-
-        :sockets: list of socket ids
-        :return: list of affected cores
-    """
-    rg = []
-    for skt in sockets:
-        rg.extend(SOCKET_DICT[skt])
-
-    return rg
-
-
-def time_fork(work, core, size, wpath, lock):
-    """
-        time_fork is used to handle forked processes for execution
-        measure. The affinity of the process is set to :core:. The 
-        operation to be executed and measured is given by :work:. The 
-        execution time is written in shared file :wpath:, concurrent-safe 
-        with :lock:.
-
-        :work: string that specifies the operation to be handled
-        :core: CPU core to set affinity
-        :size: dimension of elements used in the operation
-        :wpath: path of write file shared by forked processes
-        :lock: lock for write file safe-concurrency
-    """
-    # Set core affinity.
-    pid = os.getpid()
-    command = "taskset -cp " + str(core) + " " + str(pid)
-    subprocess.call(command, shell=True, stdout=subprocess.DEVNULL)
-
-    # Pick work operation:
-    op = OPERATIONS[work]
-    worktime = op(size) * 1000 #ms
-
-    # Write in forks file.
-    with FileLock(lock):
-        wf = open(wpath, 'a')
-        wf.write(f"{core} {worktime}\n")
-        wf.close()
-
-def power_fork(work, core, size):
-    """
-        power_fork is used to handle forked processes for energy measure.
-        The affinity of the process is set to :core:. The operation to be
-        executed and measured is given by :work:.
-        The forked process will not return; it has to be killed by the
-        parent process.
-    """
-    # Set core affinity.
-    pid = os.getpid()
-    command = "taskset -cp " + str(core) + " " + str(pid)
-    subprocess.call(command, shell=True, stdout=subprocess.DEVNULL)
-
-    # Start work operation:
-    op = OPERATIONS[work]
-    op(size, inf=True) ## INFINITE LOOP ##
-
-def produce_logs(workstr, time_results, power_results, logpath):
-    """
-        produce_logs writes the time results of :workstr: operation
-        in the corresponding log files.
-        A read-friendly .log file and a raw-data .csv are created.
-
-        :workstr: str with name of operation, for log files naming.
-        :results: a 2 dimension dictionary which stores execution time
-                    in function of frequency and core.
-    """
-    # Log files paths.
-    time_logpath = logpath + workstr + '.time.log'
-    time_csvpath = logpath + workstr + '.time.csv'
-
-    power_logpath = logpath + workstr + '.power.log'
-    power_csvpath = logpath + workstr + '.power.csv'
-
-    # Removing previous log files.
-    if os.path.exists(time_logpath):
-        os.remove(time_logpath)
-    if os.path.exists(time_csvpath):
-        os.remove(time_csvpath)
-
-    if os.path.exists(power_logpath):
-        os.remove(power_logpath)
-    if os.path.exists(power_csvpath):
-        os.remove(power_csvpath)
-
-    # Writing log results.
-    time_logf = open(time_logpath, 'w')
-    time_csvf = open(time_csvpath, 'w')
-
-    power_logf = open(power_logpath, 'w')
-    power_csvf = open(power_csvpath, 'w')
-
-    for freq in time_results:
-        logfreq = freq
-        if freq == NOMINAL_MAXFREQ:
-            logfreq = REAL_MAXFREQ
-
-        freqmhz = int(logfreq/1000)
-        
-        time_csvf.write(f"{logfreq}\n")
-        power_csvf.write(f"{logfreq}\n")
-        
-        # TIME LOG
-        time_logf.write(f"Frequency: {freqmhz} MHz\n")
-        time_logf.write("-------------------------\n") # 25-
-        time_logf.write("CPU   Time (ms)\n")
-
-        for core in sorted(time_results[freq]):
-            if core == -1:
-                continue
-            timems = time_results[freq][core]
-            time_csvf.write(f"{core}, {timems}\n")
-            time_logf.write(f"{core:<3}   {timems:.3f}\n")
-
-        time_mean = time_results[freq][-1]
-
-        time_csvf.write(f"-1, {time_mean}\n")
-
-        time_logf.write("-------------------------\n") # 25-
-        time_logf.write(f"Mean: {time_mean:.3f} ms\n")
-
-        time_logf.write("##########################\n\n") # 25#
-        
-        # POWER LOG
-        power_logf.write(f"Frequency: {freqmhz} MHz\n")
-        power_logf.write("-------------------------\n") # 25-
-        power_logf.write("Socket   Power (w)\n")
-
-        for skt in sorted(power_results[freq]):
-            if skt == -1:
-                continue
-            power = power_results[freq][skt]
-            power_csvf.write(f"{skt}, {power}\n")
-            power_logf.write(f"{skt:<6}   {power:.3f}\n")
-
-        power_mean = power_results[freq][-1]
-
-        power_csvf.write(f"-1, {power_mean}\n")
-        
-        power_logf.write("-------------------------\n")# 25-
-        power_logf.write(f"Mean: {power_mean:.3f} w\n")
-
-        power_logf.write("#########################\n\n") # 25#
-
-
-#########################################################
-
-##############
-# OPERATIONS #
-##############
+########################
+### NUMPY OPERATIONS ###
+########################
 
 def int_product(size, inf=False):
     """
@@ -468,6 +259,217 @@ OPERATIONS = {
         }
 
 ########################################################
+
+
+#####################
+# UTILITY FUNCTIONS #
+#####################
+
+def closest_frequency(freq):
+    """
+        closest_frequency calculates the minimum available frequency 
+        which is greater or equal than the given frequency. 
+        If given frequency is below the minimum allowed frequency 
+        an error is raised.
+
+        :freq: given frequency
+        :return: minimum frequency greater or equal than :freq:
+    """
+    
+    # Minimum frequency allowed by CPU.
+    minf = AVAILABLE_FREQS[0]
+
+    # Check if correct.
+    if freq < minf:
+        print(f"ERROR: Specified frequency {freq} is below the minimum allowed frequency {minf}.")
+        exit()
+
+    # Get minimum frequency greater(=) than 'freq'.
+    selfreq = AVAILABLE_FREQS[0]
+    for af in AVAILABLE_FREQS:
+        if freq <= selfreq:
+            break
+        selfreq = af
+
+    return selfreq
+
+def lower_frequency(freq, rg):
+    """
+        lower_frequency sets the cores in :rg: to :freq: frequency,
+        supposed that their actual frequencies are greater than :freq:.
+
+        :freq: new lower frequency
+        :rg: CPU cores to modify
+    """
+    cpu = cpufreq.cpuFreq()
+    cpu.set_min_frequencies(freq, rg)
+    cpu.set_max_frequencies(freq, rg)
+    cpu.set_frequencies(freq, rg)
+
+def raise_frequency(freq, rg):
+    """
+        raise_frequency sets the cores in :rg: to :freq: frequency,
+        supposed that their actual frequencyes are lower than :freq:.
+
+        :freq: new greater frequency
+        :rg: CPU cores to modify
+    """
+    cpu = cpufreq.cpuFreq()
+    cpu.set_max_frequencies(freq, rg)
+    cpu.set_min_frequencies(freq, rg)
+    cpu.set_frequencies(freq, rg)
+
+def get_cores(sockets):
+    """
+        get_cores retrieves the cores assigned to the socket ids
+        in :sockets:
+
+        :sockets: list of socket ids
+        :return: list of affected cores
+    """
+    rg = []
+    for skt in sockets:
+        rg.extend(SOCKET_DICT[skt])
+
+    return rg
+
+
+def time_fork(work, core, size, wpath, lock):
+    """
+        time_fork is used to handle forked processes for execution
+        measure. The affinity of the process is set to :core:. The 
+        operation to be executed and measured is given by :work:. The 
+        execution time is written in shared file :wpath:, concurrent-safe 
+        with :lock:.
+
+        :work: string that specifies the operation to be handled
+        :core: CPU core to set affinity
+        :size: dimension of elements used in the operation
+        :wpath: path of write file shared by forked processes
+        :lock: lock for write file safe-concurrency
+    """
+    # Set core affinity.
+    pid = os.getpid()
+    command = "taskset -cp " + str(core) + " " + str(pid)
+    subprocess.call(command, shell=True, stdout=subprocess.DEVNULL)
+
+    # Pick work operation:
+    op = OPERATIONS[work]
+    worktime = op(size) * 1000 #ms
+
+    # Write in forks file.
+    with FileLock(lock):
+        wf = open(wpath, 'a')
+        wf.write(f"{core} {worktime}\n")
+        wf.close()
+
+def power_fork(work, core, size):
+    """
+        power_fork is used to handle forked processes for energy measure.
+        The affinity of the process is set to :core:. The operation to be
+        executed and measured is given by :work:.
+        The forked process will not return; it has to be killed by the
+        parent process.
+    """
+    # Set core affinity.
+    pid = os.getpid()
+    command = "taskset -cp " + str(core) + " " + str(pid)
+    subprocess.call(command, shell=True, stdout=subprocess.DEVNULL)
+
+    # Start work operation:
+    op = OPERATIONS[work]
+    op(size, inf=True) ## INFINITE LOOP ##
+
+def produce_logs(workstr, time_results, power_results, logpath):
+    """
+        produce_logs writes the time results of :workstr: operation
+        in the corresponding log files.
+        A read-friendly .log file and a raw-data .csv are created.
+
+        :workstr: str with name of operation, for log files naming.
+        :results: a 2 dimension dictionary which stores execution time
+                    in function of frequency and core.
+    """
+    # Log files paths.
+    time_logpath = logpath + workstr + '.time.log'
+    time_csvpath = logpath + workstr + '.time.csv'
+
+    power_logpath = logpath + workstr + '.power.log'
+    power_csvpath = logpath + workstr + '.power.csv'
+
+    # Removing previous log files.
+    if os.path.exists(time_logpath):
+        os.remove(time_logpath)
+    if os.path.exists(time_csvpath):
+        os.remove(time_csvpath)
+
+    if os.path.exists(power_logpath):
+        os.remove(power_logpath)
+    if os.path.exists(power_csvpath):
+        os.remove(power_csvpath)
+
+    # Writing log results.
+    time_logf = open(time_logpath, 'w')
+    time_csvf = open(time_csvpath, 'w')
+
+    power_logf = open(power_logpath, 'w')
+    power_csvf = open(power_csvpath, 'w')
+
+    for freq in time_results:
+        logfreq = freq
+        if freq == NOMINAL_MAXFREQ:
+            logfreq = REAL_MAXFREQ
+
+        freqmhz = int(logfreq/1000)
+        
+        time_csvf.write(f"{logfreq}\n")
+        power_csvf.write(f"{logfreq}\n")
+        
+        # TIME LOG
+        time_logf.write(f"Frequency: {freqmhz} MHz\n")
+        time_logf.write("-------------------------\n") # 25-
+        time_logf.write("CPU   Time (ms)\n")
+
+        for core in sorted(time_results[freq]):
+            if core == -1:
+                continue
+            timems = time_results[freq][core]
+            time_csvf.write(f"{core}, {timems}\n")
+            time_logf.write(f"{core:<3}   {timems:.3f}\n")
+
+        time_mean = time_results[freq][-1]
+
+        time_csvf.write(f"-1, {time_mean}\n")
+
+        time_logf.write("-------------------------\n") # 25-
+        time_logf.write(f"Mean: {time_mean:.3f} ms\n")
+
+        time_logf.write("##########################\n\n") # 25#
+        
+        # POWER LOG
+        power_logf.write(f"Frequency: {freqmhz} MHz\n")
+        power_logf.write("-------------------------\n") # 25-
+        power_logf.write("Socket   Power (w)\n")
+
+        for skt in sorted(power_results[freq]):
+            if skt == -1:
+                continue
+            power = power_results[freq][skt]
+            power_csvf.write(f"{skt}, {power}\n")
+            power_logf.write(f"{skt:<6}   {power:.3f}\n")
+
+        power_mean = power_results[freq][-1]
+
+        power_csvf.write(f"-1, {power_mean}\n")
+        
+        power_logf.write("-------------------------\n")# 25-
+        power_logf.write(f"Mean: {power_mean:.3f} w\n")
+
+        power_logf.write("#########################\n\n") # 25#
+
+
+#########################################################
+
 
 
 def test_operation(work, freqs, sockets, mtime, size, log):
