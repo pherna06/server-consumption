@@ -1,24 +1,6 @@
 import argparse
 import cpufreq
 
-# 'cpufreq' module object to make frequency modifications in CPU.
-_cpu = cpufreq.cpuFreq()
-
-# List of available CPU governor schemes.
-_available_govs = [
-        'conservative',
-        'ondemand',
-        'userspace',
-        'powersave',
-        'performance',
-        'schedutil'
-        ]
-
-# List of CPU available frequencies.
-_available_freqs = sorted(_cpu.available_frequencies)
-
-_verbose = False
-
 #########################
 ### CPUFREQ FUNCTIONS ###
 #########################
@@ -320,6 +302,23 @@ def closest_frequency(freq):
     return av_freq
 
 
+def show_list(mode):
+    """
+        Prints the available values of the specified mode: freq or gov.
+
+        Parameters
+        ----------
+        mode : str
+            The specified mode whose available values will be displayed.
+    """
+    if mode == 'freq':
+        for freq in _available_freqs:
+            print(freq // 1000)
+
+    if mode == 'gov':
+        for gov in _available_govs:
+            print(gov)
+
 #########################
 ### COMMAND INTERFACE ###
 #########################
@@ -334,7 +333,7 @@ def get_parser():
     cpu_help = "CPU cores to watch or modify. "
     cpu_help += "All (online) cores selected by default."
     parser.add_argument(
-        '-c', '--cpu', help=cpu_help, 
+        '-c', '--cpu', metavar='CPU', help=cpu_help, 
         nargs='+', 
         type=int, 
         default=None
@@ -354,17 +353,18 @@ def get_parser():
     gov_help += "To change CPU governor scheme, use one of the following: "
     gov_help += "".join(f" {gov}" for gov in _available_govs)
     actions.add_argument(
-        '-g', '--governor', help=gov_help, 
+        '-g', '--governor', metavar='GOV', help=gov_help, 
         type=str,
         default=argparse.SUPPRESS
     )
+    
 
     # Argument for handling online setting.
     online_help = "'show' displays online CPUs. "
     online_help += "'on' enables selected CPUs. "
     online_help += "'off' disables selected CPUs. "
     actions.add_argument(
-        '-o', '--online', help=online_help,
+        '-o', '--online', metavar='MODE', help=online_help,
         type=str,
         default=argparse.SUPPRESS
     )
@@ -372,7 +372,7 @@ def get_parser():
     # Argument for setting minimum frequency. 
     min_help = "sets CPUs minimum frequency to MIN (in MHz)."
     actions.add_argument(
-        '--min', help=min_help, 
+        '--min', metavar='MIN', help=min_help, 
         type=int,
         default=argparse.SUPPRESS
     )
@@ -380,7 +380,7 @@ def get_parser():
     # Argument for setting maximum frequency.
     max_help = "sets CPUs maximum frequency to MAX (in MHz)."
     actions.add_argument(
-        '--max', help=max_help, 
+        '--max', metavar='MAX', help=max_help, 
         type=int,
         default=argparse.SUPPRESS
     )
@@ -388,7 +388,7 @@ def get_parser():
     # Argument for setting CPU frequency.
     freq_help = "sets CPUs frequency to FREQUENCY (in MHz)."
     actions.add_argument(
-        '-f', '--frequency', help=freq_help, 
+        '-f', '--frequency', metavar='FREQ', help=freq_help, 
         type=int,
         default=argparse.SUPPRESS
     )
@@ -397,7 +397,7 @@ def get_parser():
     nolimits_help = "sets CPUs frequency to NOLIMITS (in MHz). "
     nolimits_help += "Minimum and maximum frequencies are not modified."
     actions.add_argument(
-        '--nolimits', help=nolimits_help, 
+        '--nolimits', metavar='FREQ', help=nolimits_help, 
         type=int,
         default=argparse.SUPPRESS
     )
@@ -409,19 +409,55 @@ def get_parser():
         action='store_true'
     )
 
+    # Argument for CPU reset to default state.
+    reset_help = "resets CPU to its default state."
+    actions.add_argument(
+        '-r', '--reset', help=reset_help,
+        action='store_true'
+    )
+
+    # Argument for showing available values.
+    list_help = "'freq' shows available frequencies. "
+    list_help += "'gov' shows available governors."
+    actions.add_argument(
+        '-l', '--list', metavar='MODE', help=list_help,
+        type=str,
+        default=argparse.SUPPRESS
+    )
+
     return parser
 
 
 def main():
+    # 'cpufreq' module object to modify CPU states.
+    global _cpu
+    _cpu = cpufreq.cpuFreq()
+
+    # List of available CPU governor schemes.
+    global _available_govs
+    _available_govs = [
+            'conservative',
+            'ondemand',
+            'userspace',
+            'powersave',
+            'performance',
+            'schedutil'
+            ]
+
+    # List of CPU available frequencies.
+    global _available_freqs
+    _available_freqs = sorted(_cpu.available_frequencies)
+
+    # Verbose option.
+    global _verbose
+
+    ## Command parsing.
     parser = get_parser()
     args = parser.parse_args()
 
     rg = args.cpu
+    _verbose = True if args.verbose else False
     
-    _verbose=False
-    if args.verbose:
-        _verbose=True
-
     if 'governor' in args:
         gov = args.governor
         
@@ -456,8 +492,14 @@ def main():
         freq = closest_frequency(args.nolimits * 1000)
         set_frequency(freq, rg, False)
 
+    if 'list' in args:
+        show_list(args.list)
+
     if args.show:
         get_frequency(rg)
+
+    if args.reset:
+        _cpu.reset()
 
 
 if __name__ == '__main__':
