@@ -1,6 +1,7 @@
 import gym
 import gymcpu
 import sys
+import argparse
 
 def run_test(env, verbose=False):
     env.reset()
@@ -28,14 +29,30 @@ def run_test(env, verbose=False):
 
     return sum_reward
 
+def get_parser():
+    # Parser description and creation.
+    desc = "A command interface that to test (not train) GYM environments."
+    parser = argparse.ArgumentParser(description = desc)
+
+    env_help = "GYM environment name to be tested."
+    parser.add_argument(
+            'env', help=env_help,
+            type=str
+    )
+
+    return parser
+
 def main():
+    parser = get_parser()
+    args = parser.parse_args()
+
     kwargs = {
         'socket': 0,
         'cores': [0,1,2,3,4,5,6,7],
         'limit': 40,
     }
 
-    env = gym.make('CPUEnv01-v0', **kwargs)
+    env = gym.make(args.env, **kwargs)
     run_test(env, verbose=True)
 
 if __name__ == "__main__":

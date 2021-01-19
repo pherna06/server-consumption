@@ -1,8 +1,8 @@
 from gym.envs.registration import register
 
 register(
-    id='CPUEnv-v0',
-    entry_point='gymcpu.envs:CPUEnv',
+    id='CPUEnv00-v0',
+    entry_point='gymcpu.envs:CPUEnv00',
 )
 
 register(
