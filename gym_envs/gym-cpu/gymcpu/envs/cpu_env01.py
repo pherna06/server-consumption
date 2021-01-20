@@ -16,8 +16,8 @@ class CPUEnv01(gym.Env):
     DEF_SEED = None
     DEF_TIME = 1
     
-    DEF_MINPOWER = 15.0
-    DEF_MAXPOWER = 115.0
+    DEF_MINPOWER = 15.0 - 5.0
+    DEF_MAXPOWER = 115.0 + 5.0
 
     DEF_POWERLIMIT = 65.0
 
@@ -87,7 +87,7 @@ class CPUEnv01(gym.Env):
                 dtype = np.float32
                 )
         
-        self._state = 0.0
+        self._state = [0.0]
         
         ### CPUEnv: random number generator.
         #   _seed: numeric seed for the enviroment rng
@@ -122,7 +122,7 @@ class CPUEnv01(gym.Env):
         self.set_frequency(freq)
 
         pyRAPL.setup( devices=[pyRAPL.Device.PKG], socket_ids=[self.SOCKET] )
-        self._state = self.measure_power('Reset')
+        self._state[0] = self.measure_power('Reset')
 
         return self._state        
 
@@ -135,7 +135,7 @@ class CPUEnv01(gym.Env):
         assert self.action_space.contains(action)
         
         # Boolean for below/above limit.
-        overlimit = True if self._state > self.LIMIT else False
+        overlimit = True if self._state[0] > self.LIMIT else False
 
         ### ACTION:
         if action == self.RAISE_FREQ:
@@ -168,10 +168,10 @@ class CPUEnv01(gym.Env):
             self._done = True
 
         ### INFO AND STATE UPDATE:
-        self._info['delta'] = next_state - self._state
+        self._info['delta'] = next_state - self._state[0]
         self._info['power'] = next_state
         self._info['frequency'] = self._frequencies[ self._freqpos ]
-        self._state = next_state
+        self._state[0] = next_state
 
         ### RETURN:
         self._count += 1

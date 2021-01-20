@@ -17,8 +17,8 @@ class CPUEnv02(gym.Env):
     DEF_SEED = None
     DEF_TIME = 1
     
-    DEF_MINPOWER = 15.0
-    DEF_MAXPOWER = 115.0
+    DEF_MINPOWER = 15.0 - 5.0
+    DEF_MAXPOWER = 115.0 + 5.0
 
     DEF_POWERSTEP = 2.0 
 

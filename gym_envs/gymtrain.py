@@ -1,7 +1,8 @@
 import gym
 import gymcpu
-from gymcpu.envs.cpu_env import CPUEnv
+from gymcpu.envs.cpu_env00 import CPUEnv00
 from gymcpu.envs.cpu_env01 import CPUEnv01
+from gymcpu.envs.cpu_env02 import CPUEnv02
 
 import ray
 import ray.rllib.agents.ppo as ppo
@@ -10,6 +11,7 @@ from ray.tune.registry import register_env
 import numpy as np
 import subprocess
 import os
+import shutil
 import signal
 import argparse
 
@@ -20,11 +22,11 @@ CORES = [8,9,10,11,12,13,14,15]
 
 MATRIX_SIZE = 1000
 
+MAX_INT = 10000000
+
 ########################
 ### NUMPY OPERATIONS ###
 ########################
-
-MAX_INT = 10000000
 
 def int_product(size):
     """
@@ -207,7 +209,7 @@ def power_fork(work, core, size):
 
     # Start work operation:
     op = OPERATIONS[work]
-    op(size) ## INFINITE LOOP ##
+    op(size) ## -> INFINITE LOOP
 
 
 ####################
@@ -215,8 +217,9 @@ def power_fork(work, core, size):
 ####################
 
 ENVIRONMENTS = {
-    'CPUEnv-v0':        CPUEnv,
-    'CPUEnv01-v0':      CPUEnv01
+    'CPUEnv00-v0':      CPUEnv00,
+    'CPUEnv01-v0':      CPUEnv01,
+    'CPUEnv02-v0':      CPUEnv02
 }
 
 
@@ -295,7 +298,7 @@ def get_parser():
     # Parser environment variable.
     env_help = "The name of a GYM environment defined within gymcpu local module. "
     env_help += "Available environments:"
-    env_help += "".join( f" {env}" for env in ENVIRONMENTS)
+    env_help += "".join(f" {env}" for env in ENVIRONMENTS)
     parser.add_argument(
         'env', help=env_help,
         metavar='ENV',
@@ -353,8 +356,8 @@ def main():
             pidls.append(pid)
 
     # Set measuring process in socket 0
-    pid = os.getpid()
-    command = "taskset -cp 0-7 " + str(pid)
+    mainpid = os.getpid()
+    command = "taskset -cp 0-7 " + str(mainpid)
     subprocess.call(command, shell=True, stdout=subprocess.DEVNULL)
 
     train_env(env, power, time)
@@ -362,7 +365,8 @@ def main():
     # Kill forks.
     for pid in pidls:
         os.kill(pid, signal.SIGKILL)
-
-
+    
+if __name__ == '__main__':
+    main()
 
 
