@@ -1,4 +1,3 @@
-from cpufreq.cpufreq_utils import get_parser
 import gym
 import gymcpu
 from gymcpu.envs.cpu_env import CPUEnv
@@ -331,6 +330,8 @@ def get_parser():
         type=float,
         default=MEASURE_TIME
     )
+
+    return parser
 
 
 def main():

@@ -6,8 +6,9 @@ import cpufreq
 import pyRAPL
 import time
 import numpy as np
+from math import ceil
 
-class CPUEnv01(gym.Env):
+class CPUEnv02(gym.Env):
     ### DEFAULT PERSONAL VALUES
     DEF_SOCKET = 0
     DEF_CORES = [0,1,2,3,4,5,6,7]
@@ -19,6 +20,8 @@ class CPUEnv01(gym.Env):
     DEF_MINPOWER = 15.0
     DEF_MAXPOWER = 115.0
 
+    DEF_POWERSTEP = 2.0 
+
     DEF_POWERLIMIT = 65.0
 
     def __init__(self,
@@ -29,7 +32,8 @@ class CPUEnv01(gym.Env):
                  time=DEF_TIME,
                  seed=DEF_SEED,
                  minpow=DEF_MINPOWER,
-                 maxpow=DEF_MAXPOWER
+                 maxpow=DEF_MAXPOWER,
+                 powstep=DEF_POWERSTEP
                  ):
         ### CPUEnv constant values.
         #   SOCKET socket to get pyRAPL measures
@@ -37,6 +41,7 @@ class CPUEnv01(gym.Env):
         #   LIMIT power limit for environment functionality
         #   MAXSTEPS maximum iterations for environment
         #   TIME time spent in each rapl measurement
+        #   POWERSTEP size of intervals of observation space
         self.SOCKET = socket
         self.CORES = cores
         self.LIMIT = limit
@@ -44,6 +49,9 @@ class CPUEnv01(gym.Env):
         self.TIME = time
         self.MINPOWER = minpow
         self.MAXPOWER = maxpow
+        self.BANDWIDTH = self.MAXPOWER - self.MINPOWER
+        self.POWERSTEP = powstep
+        self.INTERVALS =  ceil( (self.BANDWIDTH) / self.POWERSTEP )
 
         ### Default metadata.
         self.metadata = { 'render.modes': ['human'] }
@@ -68,26 +76,28 @@ class CPUEnv01(gym.Env):
         self.RAISE_FREQ = 1
 
         ### Action rewards:
-        #   REWARD_LOWER_BELOW lower frequency while below power limit
-        #   REWARD_RAISE_BELOW raise frequency while below power limit
-        #   REWARD_LOWER_ABOVE lower frequency while above power limit
-        #   REWARD_RAISE_ABOVE raise frequency while above power limit
+        #   REWARD_LOWER_BELOW lower frequency while below limit interval
+        #   REWARD_RAISE_BELOW raise frequency while below limit interval
+        #   REWARD_LOWER_ABOVE lower frequency while above limit interval
+        #   REWARD_RAISE_ABOVE raise frequency while above limit interval
+        #   REWARD_GOAL interval goal reached
         self.REWARD_LOWER_BELOW = -1
         self.REWARD_RAISE_BELOW =  1
         self.REWARD_LOWER_ABOVE =  5
         self.REWARD_RAISE_ABOVE = -5
+        self.REWARD_GOAL = 50
        
         ### Observation space:
-        #   Power of CPU.
-        #   _state; current power consumption
-        self.observation_space = gym.spaces.Box(
-                low = self.MINPOWER,
-                high = self.MAXPOWER,
-                shape = (1,),
-                dtype = np.float32
-                )
+        #   Interval partition of power range of CPU.
+        #   Shape of intervals: (power_i, power_i+1]
+        self.observation_space = gym.spaces.Discrete(self.INTERVALS)
         
-        self._state = 0.0
+        #   _power: current power consumption
+        #   _state: interval of current power consumption
+        #   _goal: interval of self.LIMIT
+        self._power = 0.0
+        self._state = 0
+        self._goal = ceil((self.LIMIT - self.MINPOWER) / self.POWERSTEP)
         
         ### CPUEnv: random number generator.
         #   _seed: numeric seed for the enviroment rng
@@ -116,13 +126,16 @@ class CPUEnv01(gym.Env):
         self._info = {}
         self._count = 0
 
-        ### Set random initial frequency and measure power.
+        ### Set random initial frequency.
         self._freqpos = self._rng.choice( np.arange( len(self._frequencies) ) )
         freq = self._frequencies[ self._freqpos ]
         self.set_frequency(freq)
 
+        ### Measure power and calculate power interval (state)
         pyRAPL.setup( devices=[pyRAPL.Device.PKG], socket_ids=[self.SOCKET] )
-        self._state = self.measure_power('Reset')
+        self._power = self.measure_power('Reset')
+
+        self._state = self.get_state( self._power )
 
         return self._state        
 
@@ -133,9 +146,6 @@ class CPUEnv01(gym.Env):
             return self._state, self._reward, self._done, self._info
 
         assert self.action_space.contains(action)
-        
-        # Boolean for below/above limit.
-        overlimit = True if self._state > self.LIMIT else False
 
         ### ACTION:
         if action == self.RAISE_FREQ:
@@ -154,23 +164,38 @@ class CPUEnv01(gym.Env):
                 self.set_frequency(freq)
 
         # Measure new power consumption.
-        next_state = self.measure_power(f"Iter {self._count + 1}")
+        next_power = self.measure_power(f"Iter {self._count + 1}")
+        next_state = self.get_state( next_power )
 
         ### REWARDS:
-        if action == self.RAISE_FREQ:
-            self._reward += self.REWARD_RAISE_ABOVE if overlimit else self.REWARD_RAISE_BELOW
-        elif action == self.LOWER_FREQ:
-            self._reward += self.REWARD_LOWER_ABOVE if overlimit else self.REWARD_LOWER_BELOW
+        diff = next_state - self._goal
+        if diff == 0:
+            self._reward += self.REWARD_GOAL
+        else:
+            if action == self.RAISE_FREQ:
+                if diff > 0:
+                    self._reward += self.REWARD_RAISE_ABOVE
+                else:
+                    self._reward += self.REWARD_RAISE_BELOW
+            elif action == self.LOWER_FREQ:
+                if diff > 0:
+                    self._reward += self.REWARD_LOWER_ABOVE
+                else:
+                    self._reward += self.REWARD_LOWER_BELOW
 
         ### GOAL:
-        #   if overlimit, action was lower freq and new power is below limit
-        if action == self.LOWER_FREQ and overlimit and next_state < self.LIMIT:
+        #   if measured power interval is the same as LIMIT interval (_goal)
+        if next_state == self._goal:
             self._done = True
 
         ### INFO AND STATE UPDATE:
-        self._info['delta'] = next_state - self._state
-        self._info['power'] = next_state
+        self._info['delta'] = next_power - self._power
+        self._info['power'] = next_power
         self._info['frequency'] = self._frequencies[ self._freqpos ]
+        lowpow = (next_state - 1) * self.POWERSTEP
+        self._info['lower_bound'] = self.MINPOWER + lowpow
+        self._info['higher_bound'] = self._info['lower_bound'] + self.POWERSTEP
+        self._power = next_power
         self._state = next_state
 
         ### RETURN:
@@ -180,7 +205,7 @@ class CPUEnv01(gym.Env):
     def render(self, mode='human'):
         ### Print current environtment state info.
         print(
-            f"power: {self._state}, ",
+            f"interval: {self._state}, ",
             f"reward: {self._reward}, ",
             f"info: {self._info}"
         )
@@ -196,6 +221,10 @@ class CPUEnv01(gym.Env):
         self._cpu.reset()
 
     ### AUXILIARY METHODS
+
+    def get_state(self, power):
+        abspow = power - self.MINPOWER
+        return ceil(abspow / self.POWERSTEP)
 
     def set_frequency(self, freq):
         ### Check if current frequency is above or below
