@@ -1,12 +1,15 @@
 import argparse
+from numpy.testing._private.utils import requires_memory
 import pyRAPL
 import time
 import subprocess
 import os
 import signal
 import cpufreq
-from  filelock import FileLock
-import numpy as np
+from filelock import FileLock
+
+import numpypower as npp
+import numpytime as npt
 
 # MODIFY ACCORDING TO YOUR MACHINE CPU CONFIGURATION.
 CPU_LIST = list(range(16))
@@ -14,11 +17,7 @@ SOCKET_LIST = [0, 1]
 SOCKET_DICT = {
         0: CPU_LIST[0:8], 
         1: CPU_LIST[8:16]
-        }
-
-# DEFAULT RANDOM MATRICES SIZE.
-MATRIX_SIZE = 1000
-LIST_SIZE = MATRIX_SIZE*MATRIX_SIZE
+}
 
 # cpufreq variables.
 AVAILABLE_FREQS = sorted(cpufreq.cpuFreq().available_frequencies)
@@ -27,239 +26,18 @@ AVAILABLE_FREQS = sorted(cpufreq.cpuFreq().available_frequencies)
 TIME_CPU = 0
 TIME_REPS = 10
 
-# NUMBER GENERATION
-MAX_INT = 1000000
-
-# LOG FILEG PATH
-LOG_PATH = "/home/pherna06/venv-esfinge/server-consumption/log/"
-
 # ENERGY MEASURE
-MEASURE_TIME = 2
+DEF_POWERTIME = 2.0
 
 # MAX FREQUENCY
 NOMINAL_MAXFREQ = 2601000
 REAL_MAXFREQ = 3000000
 
-########################
-### NUMPY OPERATIONS ###
-########################
+# DIMENSION
+DEF_DIM = 1000
 
-def int_product(size, inf=False):
-    """
-        int_product performs a product of integer matrices and measures
-        execution time. Matrices dimension is :size: x :size:.
-        If :inf: is True, the matrix product is executed in an infinite
-        loop.
-
-        :size: dimension of square matrix
-        :return: execution time of matrix product. 
-                    If :inf: is True, never returns
-    """
-    # Random matrix generation.
-    matA = np.random.randint(MAX_INT, size=(size, size))
-    matB = np.random.randint(MAX_INT, size=(size, size))
-
-    # ENERGY: loop.
-    while(inf):
-        matC = np.matmul(matA, matB)
-
-    # TIME: operation.
-    start = time.time()
-    matC = np.matmul(matA, matB)
-    end = time.time()
-
-    return (end - start)
-
-def float_product(size, inf=False):
-    """
-        float_product performs a product of real matrices and measures
-        execution time. Matrices dimension is :size: x :size:.
-        If :inf: is True, the matrix product is executed in an infinite
-        loop.
-
-        :size: dimension of square matrix
-        :return: execution time of matrix product. 
-                    If :inf: is True, never returns
-    """
-    # Random matrix generation.
-    matA = np.random.rand(size, size)
-    matB = np.random.rand(size, size)
-
-    # ENERGY: loop.
-    while(inf):
-        matC = np.matmul(matA, matB)
-
-    # TIME: operation.
-    start = time.time()
-    matC = np.matmul(matA, matB)
-    end = time.time()
-
-    return (end - start)
-
-def int_transpose(size, inf=False):
-    """
-        int_transpose performs the repeated transposition of an integer matrix
-        and measures execution time. Matrix dimension is :size: x :size:.
-        If :inf: is True, the transposition is executed in an infinite loop.
-
-        :size: dimension of square matrix
-        :return: execution time of matrix transposition
-                    If :inf: is True, never returns
-    """
-    # Random matrix generation.
-    matA = np.random.randint(MAX_INT, size=(size, size))
-
-    # ENERGY: loop.
-    while(inf):
-        matA = matA.transpose().copy()
-
-    # TIME: operation.
-    start = time.time()
-    matA = matA.transpose().copy()
-    matA = matA.transpose().copy()
-    end = time.time()
-
-    return (end - start)
-
-def float_transpose(size, inf=False):
-    """
-        float_transpose performs the repeated transposition of a real matrix
-        and measures execution time. Matrix dimension is :size: x :size:.
-        If :inf: is True, the transposition is executed in an infinite loop.
-
-        :size: dimension of square matrix
-        :return: execution time of matrix transposition
-                    If :inf: is True, never returns
-    """
-    # Random matrix generation
-    matA = np.random.rand(size, size)
-
-    # ENERGY: loop.
-    while(inf):
-        matA = matA.transpose().copy()
-
-    # TIME: operation
-    start = time.time()
-    matA = matA.transpose().copy()
-    matA = matA.transpose().copy()
-    end = time.time()
-
-    return (end - start)
-
-def int_sort(size, inf=False):
-    """
-        int_sort performs the sorting of a random integer array and
-        measures execution time. Array dimension is :size: * :size:.
-        If :inf: is True, the sorting is executed in an infinite loop.
-
-        :size: square-rooted dimension of array length
-        :return: execution time of sorting.
-                    If :inf: is True, never returns
-    """
-    # Random array generation
-    arrayA = np.random.randint(MAX_INT, size=(size*size))
-
-    # ENERGY: loop.
-    while(inf):
-        arrayB = np.sort(arrayA)
-
-    # TIME: operation
-    start = time.time()
-    arrayB = np.sort(arrayA)
-    end = time.time()
-
-    return (end - start)
-
-def float_sort(size, inf=False):
-    """
-        float_sort performs the sorting of a random real array and
-        measures execution time. Array dimension is :size: * :size:.
-        If :inf: is True, the sorting is executed in an infinite loop.
-
-        :size: square-rooted dimension of array length
-        :return: execution time of sorting.
-                    If :inf: is True, never returns
-    """
-    # Random array generation
-    arrayA = np.random.rand(size*size)
-
-    # ENERGY: loop.
-    while(inf):
-        arrayB = np.sort(arrayA)
-
-    # TIME: operation
-    start = time.time()
-    arrayB = np.sort(arrayA)
-    end = time.time()
-
-    return (end - start)
-
-def int_scalar(size, inf=False):
-    """
-        int_scalar performs the sum of a random integer to each element of
-        a random integer matrix. Matrix dimension is :size: x :size:.
-        If :inf: is True, the scalar sum is executed in an infinite loop.
-
-        :size: dimension of square matrix
-        :return: execution time of scalar sum.
-                    If :inf: is True, never returns
-    """
-    # Random matrix generation
-    matA = np.random.randint(MAX_INT, size=(size, size))
-    intN = np.random.randint(MAX_INT)
-
-    # ENERGY: loop.
-    while(inf):
-        matB = matA + intN
-
-    # TIME: operation.
-    start = time.time()
-    matB = matA + intN
-    end = time.time()
-
-    return (end - start)
-
-
-def float_scalar(size, inf=False):
-    """
-        float_scalar performs the sum of a random real number to each
-        element of a random real matrix. Matrix dimension is :size: x :size:.
-        If :inf: is True, the scalar sum is executed in an infinite loop.
-
-        :size: dimension of square matrix
-        :Return: execution time of scalar sum.
-                    If :inf: is True, never returns
-    """
-    # Randopm amtrix generation
-    matA = np.random.rand(size, size)
-    floatN = np.random.rand()
-
-    # ENERGY: loop.
-    while(inf):
-        matB = matA + floatN
-
-    # TIME: operation.
-    start = time.time()
-    matB = matA + floatN
-    end = time.time()
-
-    return (end - start)
-
-
-
-OPERATIONS = {
-        'intproduct': int_product,
-        'floatproduct': float_product,
-        'inttranspose': int_transpose,
-        'floattranspose': float_transpose,
-        'intsort': int_sort,
-        'floatsort': float_sort,
-        'intscalar': int_scalar,
-        'floatscalar': float_scalar
-        }
-
-########################################################
-
+# REPEAT
+DEF_REP = 1
 
 #####################
 # UTILITY FUNCTIONS #
@@ -267,13 +45,19 @@ OPERATIONS = {
 
 def closest_frequency(freq):
     """
-        closest_frequency calculates the minimum available frequency 
-        which is greater or equal than the given frequency. 
-        If given frequency is below the minimum allowed frequency 
-        an error is raised.
+        Calculates the minimum available frequency which is greater or equal 
+        than the given frequency. If given frequency is below the minimum 
+        allowed frequency an error is raised.
 
-        :freq: given frequency
-        :return: minimum frequency greater or equal than :freq:
+        Parameters
+        ----------
+        freq : int
+            The given frequency in KHz.
+        
+        Returns
+        -------
+        int
+            The minimum frequency greater or equal than the provided one.
     """
     
     # Minimum frequency allowed by CPU.
@@ -295,11 +79,15 @@ def closest_frequency(freq):
 
 def lower_frequency(freq, rg):
     """
-        lower_frequency sets the cores in :rg: to :freq: frequency,
-        supposed that their actual frequencies are greater than :freq:.
+        Sets the specified cores to the given frequency, supposed that their
+        actual frequencies are greater than the given one.
 
-        :freq: new lower frequency
-        :rg: CPU cores to modify
+        Parameters
+        ----------
+        freq : int
+            The frequency, in KHz, to which cores will be set.
+        rg : list
+            The cores whose frequency will be lowered.
     """
     cpu = cpufreq.cpuFreq()
     cpu.set_min_frequencies(freq, rg)
@@ -308,11 +96,15 @@ def lower_frequency(freq, rg):
 
 def raise_frequency(freq, rg):
     """
-        raise_frequency sets the cores in :rg: to :freq: frequency,
-        supposed that their actual frequencyes are lower than :freq:.
+        Sets the specified cores to the given frequency, supposed that their
+        actual frequencies are lower than the given one.
 
-        :freq: new greater frequency
-        :rg: CPU cores to modify
+        Parameters
+        ----------
+        freq : int
+            The frequency, in KHz, to which cores will be set.
+        rg : list
+            The cores whose frequency will be raised.
     """
     cpu = cpufreq.cpuFreq()
     cpu.set_max_frequencies(freq, rg)
@@ -321,11 +113,17 @@ def raise_frequency(freq, rg):
 
 def get_cores(sockets):
     """
-        get_cores retrieves the cores assigned to the socket ids
-        in :sockets:
+        Retrieves the cores associated to the given socket IDs.
 
-        :sockets: list of socket ids
-        :return: list of affected cores
+        Parameters
+        ----------
+        sockets : list
+            The specified socket numbers.
+        
+        Returns
+        -------
+        list
+            The cores associated with the given socket numbers.
     """
     rg = []
     for skt in sockets:
@@ -334,28 +132,36 @@ def get_cores(sockets):
     return rg
 
 
-def time_fork(work, core, size, wpath, lock):
-    """
-        time_fork is used to handle forked processes for execution
-        measure. The affinity of the process is set to :core:. The 
-        operation to be executed and measured is given by :work:. The 
-        execution time is written in shared file :wpath:, concurrent-safe 
-        with :lock:.
+######################
+### FORK FUNCTIONS ###
+######################
 
-        :work: string that specifies the operation to be handled
-        :core: CPU core to set affinity
-        :size: dimension of elements used in the operation
-        :wpath: path of write file shared by forked processes
-        :lock: lock for write file safe-concurrency
+def time_fork(work, core, size, rep, wpath, lock):
+    """
+        Handles forked processes for execution time measurement. The affinity 
+        of the process is set to the given core. Execution times are stored
+        in a concurrent-safe shared file.
+
+        Parameters
+        ----------
+        work : str
+            Name that specifies the operation to be measured.
+        core : int
+            CPU core to set process affinity.
+        size : int
+            Dimension of the Numpy elements used in the operation.
+        rep : int
+            Number of iterations of the operation to be measured.
+        wpath : str
+            Path of write file shared by the forked processes.
+        lock : str
+            Path of lock for write file safe-concurrency.
     """
     # Set core affinity.
-    pid = os.getpid()
-    command = "taskset -cp " + str(core) + " " + str(pid)
-    subprocess.call(command, shell=True, stdout=subprocess.DEVNULL)
+    os.sched_setaffinity(0, {core})
 
     # Pick work operation:
-    op = OPERATIONS[work]
-    worktime = op(size) * 1000 #ms
+    worktime = npt.timeop(op=work, config={'size': size, 'rep': rep}) * 1000 # ms
 
     # Write in forks file.
     with FileLock(lock):
@@ -365,55 +171,58 @@ def time_fork(work, core, size, wpath, lock):
 
 def power_fork(work, core, size):
     """
-        power_fork is used to handle forked processes for energy measure.
-        The affinity of the process is set to :core:. The operation to be
-        executed and measured is given by :work:.
-        The forked process will not return; it has to be killed by the
-        parent process.
+        Handles forked processes for operation energy measurement. The affinity
+        of the process is set to the given core. The forked process will not 
+        return; it has to be killed by the parent process.
+
+        Parameters
+        ----------
+        work : str
+            Name that specifies the operation to be measured.
+        core : int
+            CPU core to set process affinity.
+        size : int
+            Dimension of the Numpy elements used in the operation.
     """
     # Set core affinity.
-    pid = os.getpid()
-    command = "taskset -cp " + str(core) + " " + str(pid)
-    subprocess.call(command, shell=True, stdout=subprocess.DEVNULL)
+    os.sched_setaffinity(0, {core})
 
     # Start work operation:
-    op = OPERATIONS[work]
-    op(size, inf=True) ## INFINITE LOOP ##
+    npp.powerop(op=work, config={'size': size})
 
-def produce_logs(workstr, time_results, power_results, logpath):
+
+######################
+### LOG GENERATION ###
+######################
+
+def time_logs(workstr, time_results, logpath):
     """
-        produce_logs writes the time results of :workstr: operation
-        in the corresponding log files.
-        A read-friendly .log file and a raw-data .csv are created.
+        Saves the time results of an operation in the specified log files. A 
+        read-friendly .log file and a raw-data .csv are created.
 
-        :workstr: str with name of operation, for log files naming.
-        :results: a 2 dimension dictionary which stores execution time
-                    in function of frequency and core.
+        Parameters
+        ----------
+        workstr : str
+            Name of the operation, used for log files naming.
+        time_results : dict
+            Dictionary with execution times for frequency and core.
+            > time = time_results[freq][core]
+        logpath : str
+            Path of folder where log files will be generated.
     """
     # Log files paths.
     time_logpath = logpath + workstr + '.time.log'
     time_csvpath = logpath + workstr + '.time.csv'
 
-    power_logpath = logpath + workstr + '.power.log'
-    power_csvpath = logpath + workstr + '.power.csv'
-
-    # Removing previous log files.
+    # Removal of previous log files.
     if os.path.exists(time_logpath):
         os.remove(time_logpath)
     if os.path.exists(time_csvpath):
         os.remove(time_csvpath)
 
-    if os.path.exists(power_logpath):
-        os.remove(power_logpath)
-    if os.path.exists(power_csvpath):
-        os.remove(power_csvpath)
-
     # Writing log results.
     time_logf = open(time_logpath, 'w')
     time_csvf = open(time_csvpath, 'w')
-
-    power_logf = open(power_logpath, 'w')
-    power_csvf = open(power_csvpath, 'w')
 
     for freq in time_results:
         logfreq = freq
@@ -423,9 +232,7 @@ def produce_logs(workstr, time_results, power_results, logpath):
         freqmhz = int(logfreq/1000)
         
         time_csvf.write(f"{logfreq}\n")
-        power_csvf.write(f"{logfreq}\n")
         
-        # TIME LOG
         time_logf.write(f"Frequency: {freqmhz} MHz\n")
         time_logf.write("-------------------------\n") # 25-
         time_logf.write("CPU   Time (ms)\n")
@@ -445,8 +252,46 @@ def produce_logs(workstr, time_results, power_results, logpath):
         time_logf.write(f"Mean: {time_mean:.3f} ms\n")
 
         time_logf.write("##########################\n\n") # 25#
+
+
+def power_logs(workstr, power_results, logpath):
+    """
+        Saves the power results of an operation in the specified log files. A 
+        read-friendly .log file and a raw-data .csv are created.
+
+        Parameters
+        ----------
+        workstr : str
+            Name of the operation, used for log files naming.
+        power_results : dict
+            Dictionary with energy consumption for frequency and core.
+            > power = power_results[freq][core]
+        logpath : str
+            Path of folder where log files will be generated.
+    """
+    # Log files paths.
+    power_logpath = logpath + workstr + '.power.log'
+    power_csvpath = logpath + workstr + '.power.csv'
+
+    # Removal of previous log files.
+    if os.path.exists(power_logpath):
+        os.remove(power_logpath)
+    if os.path.exists(power_csvpath):
+        os.remove(power_csvpath)
+
+    # Writing log results.
+    power_logf = open(power_logpath, 'w')
+    power_csvf = open(power_csvpath, 'w')
+
+    for freq in power_results:
+        logfreq = freq
+        if freq == NOMINAL_MAXFREQ:
+            logfreq = REAL_MAXFREQ
+
+        freqmhz = int(logfreq/1000)
         
-        # POWER LOG
+        power_csvf.write(f"{logfreq}\n")
+        
         power_logf.write(f"Frequency: {freqmhz} MHz\n")
         power_logf.write("-------------------------\n") # 25-
         power_logf.write("Socket   Power (w)\n")
@@ -468,50 +313,54 @@ def produce_logs(workstr, time_results, power_results, logpath):
         power_logf.write("#########################\n\n") # 25#
 
 
-#########################################################
+###################
+### MEASUREMENT ###
+###################
 
-
-
-def test_operation(work, freqs, sockets, mtime, size, log):
+def time_measure(work, freqs, cores, size, rep, log):
     """
-        test_operation sets the environment to take measures of 
-        the operation specified in :work: parameter.
-        For each frequency in :freqs:, a forked process is created
-        for each core in :sockets:, in which the operation is measured.
-        Results are stored in a concurrent-safe file written by each
-        process; then stored in the respective log files.
+        Sets the environment to measure the execution times of the specified
+        operation. For each frequency and core, a forked process is created in
+        which the operation time is measured. Execution times are written on
+        a concurrent-safe shared temporal file. Log files are generated
+        if indicated.
 
-        :work: string that specifies the operation
-        :freqs: frequencies in which the operation will be measured
-        :sockets: sockets in whose cores the operation will be executed
-        :mtime: wait time to measure energy consumption of operation
-        :size: dimension of elements in the operation
-        :log: path of log files. If None, no log files are produced
+        Parameters
+        ----------
+        work : str
+            Name that specifies the operation to be measured.
+        freqs : list
+            List of frequencies (in KHz) in which the execution time will be
+            measured.
+        cores : list
+            List of cores where the operation will be executed.
+        size : int
+            Dimension of the Numpy elements used in the operation.
+        rep : int
+            Number of iterations of the operation to be measured.
+        log : str
+            Path of the folder where log files will be generated.
+            If None, log files will not be produced.
     """
-    # Get implied CPU cores from sockets.
-    rg = get_cores(sockets)
-
     # Set frequencies to minimum allowed frequency.
-    # So changing the frequency implies raising it.
+    # so that changing the frequency implies raising it.
     minf = AVAILABLE_FREQS[0]
-    lower_frequency(minf, rg)
+    lower_frequency(minf, cores)
 
-    # Dict to store results.
+    # Dict to store results
     time_results = {}
-    power_results = {}
 
-    # Forks write file and lock:
-    timepath = "data.temp"
-    powerpath = "power.temp"
-    lock = "lock.temp"
-    
-    # Measure exec time for each frequency in each implied core.
+    # Shared temporal file and lock:
+    timepath = 'time.temp'
+    lockpath = 'lock.temp'
+
+    # Measure execution time for each frequency in each implied core.
     freqs = sorted(freqs)
     for freq in freqs:
-        raise_frequency(freq, rg)
+        raise_frequency(freq, cores)
 
-        print(f"Measuring execution time with {int(freq/1000)} MHz.")
-        
+        print(f"Measuring execution time with {freq // 1000} MHz.")
+
         # Remove conflicting file.
         if os.path.exists(timepath):
             os.remove(timepath)
@@ -519,13 +368,13 @@ def test_operation(work, freqs, sockets, mtime, size, log):
         # Create file.
         wf = open(timepath, 'a+')
         wf.close()
-        
-        # Forks pid list.
+
+        # Forks pid list
         pidls = []
-        for core in rg:
+        for core in cores:
             pidls.append( os.fork() )
             if pidls[-1] == 0:
-                time_fork(work, core, size, timepath, lock)
+                time_fork(work, core, size, timepath, lockpath)
                 exit(0)
 
         # Wait for all forked processes
@@ -555,12 +404,51 @@ def test_operation(work, freqs, sockets, mtime, size, log):
 
     os.remove(timepath)
 
-    # Measure power consumption for each frequency in each socket.
-    lower_frequency(minf, rg)
-    for freq in freqs:
-        raise_frequency(freq, rg)
+    # Writing log files
+    if log is not None:
+        time_logs(work, time_results, log)
 
-        print(f"Measuring power consumption with {int(freq/1000)} MHz.")
+def power_measure(work, freqs, cores, size, log):
+    """
+        Sets the environment to measure the energy consumption of the specified
+        operation. For each frequency and core, a forked process is created in
+        which the operation power is measured. Measured powers are written on
+        a concurrent-safe shared temporal file. Log files are generated
+        if indicated.
+
+        Parameters
+        ----------
+        work : str
+            Name that specifies the operation to be measured.
+        freqs : list
+            List of frequencies (in KHz) in which the execution time will be
+            measured.
+        cores : list
+            List of cores where the operation will be executed.
+        size : int
+            Dimension of the Numpy elements used in the operation.
+        log : str
+            Path of the folder where log files will be generated.
+            If None, log files will not be produced.
+    """
+    # Set frequencies to minimum allowed frequency.
+    # so that changing the frequency implies raising it.
+    minf = AVAILABLE_FREQS[0]
+    lower_frequency(minf, cores)
+
+    # Dict to store results
+    power_results = {}
+
+    # Shared temporal file and lock:
+    powerpath = 'power.temp'
+    lockpath = 'lock.temp'
+
+    # Measure execution time for each frequency in each implied core.
+    freqs = sorted(freqs)
+    for freq in freqs:
+        raise_frequency(freq, cores)
+
+        print(f"Measuring energy consumption with {freq // 1000} MHz.")
 
         # Remove conflicting file.
         if os.path.exists(powerpath):
@@ -570,85 +458,143 @@ def test_operation(work, freqs, sockets, mtime, size, log):
         wf = open(powerpath, 'a+')
         wf.close()
 
-        # Forks pid list.
+        # Forks pid list
         pidls = []
-        for core in rg:
+        for core in cores:
             pidls.append( os.fork() )
             if pidls[-1] == 0:
-                power_fork(work, core, size)
+                power_fork(work, core, size, powerpath, lockpath)
+                exit(0)
 
-        # pyRAPL measure of socket.
-        meter = pyRAPL.Measurement(label=work)
-
-        meter.begin()
-        time.sleep(mtime)
-        meter.end()
-
-        # Kill forked processes.
+        # Wait for all forked processes
         for pid in pidls:
-            os.kill(pid, signal.SIGKILL)
+            os.waitpid(pid, 0)
 
-        # Get measurements.
-        timerapl = meter._results.duration
-
-        power_sum = 0.0
+        # Get this frequency results.
+        wf = open(powerpath, 'r')
+        wflines = wf.readlines()
+        wf.close()
+        
+        time_sum = 0.0
         power_results[freq] = {}
-        for skt in sockets:
-            energyrapl = meter._results.pkg[skt]
-            power = energyrapl / timerapl
+        for line in wflines:
+            corestr, worktimestr = line.split()
+            core = int(corestr)
+            worktime = float(worktimestr)
 
-            power_results[freq][skt] = power
-            power_sum += power
+            power_results[freq][core] = worktime
+            time_sum += worktime
 
-        # Power mean.
-        count = len(sockets)
-        power_results[freq][-1] = power_sum / count
+        # Time mean.
+        count = len(wflines)
+        power_results[freq][-1] = time_sum / count
 
-        print(f"Mean power consumption: {power_results[freq][-1]:.3f} W")
+        print(f"Mean execution time: {power_results[freq][-1]:.3f} ms")
 
     os.remove(powerpath)
-    os.remove(lock)
 
     # Writing log files
     if log is not None:
-        produce_logs(work, time_results, power_results, log)
-    
+        power_logs(work, power_results, log)
 
-############################################################
+
+#########################
+### COMMAND INTERFACE ###
+#########################
 
 def get_parser():
     desc = ""
     parser = argparse.ArgumentParser(description = desc)
 
+    ## Metrics: time or power.
+    metrics = parser.add_mutually_exclusive_group(required=True)
 
-    # Optional arguments.
-    socket_help = "sockets that will be measured.\n"
-    socket_help += "all sockets selected by default"
-    parser.add_argument('-s', '--socket', help=socket_help, nargs='+', type=int, default=SOCKET_LIST)
+    time_help = "Measures execution time of the specified operation."
+    metrics.add_argument(
+        '--time', metavar='time', help=time_help,
+        action='store_true'
+    )
 
-    freq_help =  "FREQ frequencies in which the selected operation will be tested.\n"
-    freq_help += "all available frequencies set by default"
-    parser.add_argument('-f', '--freq', help=freq_help, nargs='+', type=int, default=argparse.SUPPRESS)
+    power_help = "Measures energy consumption of the specified operation."
+    metrics.add_argument(
+        '--power', metavar='power', help=power_help,
+        action='store_true'
+    )
 
-    dim_help = "random matrices dimension: DIM x DIM.\n"
-    dim_help += "set to {} by default".format(MATRIX_SIZE)
-    parser.add_argument('-d', '--dim', help=dim_help, type=int, default=MATRIX_SIZE)
+    ## Execution: cores or sockets
+    cpucores = parser.add_mutually_exclusive_group(required=True)
 
-    time_help = "time (seconds) spent in measuring energy consumption for each frequency"
-    time_help += "set to {} seconds by default".format(MEASURE_TIME)
-    parser.add_argument('-t', '--time', help=time_help, type=int, default=MEASURE_TIME)
+    cores_help = "The operation is executed in each specified core."
+    cpucores.add_argument(
+        '-c', '--cores', metavar='cores', help=cores_help,
+        nargs='+',
+        type=int,
+    )
 
-    log_help = "produces log files in LOG path where results are stored.\n"
-    log_help += "set to '{}' by default.".format(LOG_PATH)
-    parser.add_argument('-l', '--log', help=log_help, type=str, nargs='?', const=LOG_PATH, default=argparse.SUPPRESS)
-    
+    sockets_help = "The operation is executed in the cores of the specified "
+    sockets_help += "sockets."
+    cpucores.add_argument(
+        '-s', '--sockets', metavar='sockets', help=sockets_help,
+        nargs='+',
+        type=int
+    )
+
+    # Optional arguments
+    ## Frequencies
+    freq_help =  "FREQS frequencies in which the selected operation will be "
+    freq_help += "tested. All available frequencies set by default"
+    parser.add_argument(
+        '-f', '--freqs', metavar='freqs', help=freq_help, 
+        nargs='+', 
+        type=int, 
+        default=argparse.SUPPRESS
+    )
+
+    ## Dimension
+    dim_help = "Dimension used for the Numpy elements in the operation."
+    dim_help += "For matrices, size is DIM X DIM."
+    dim_help += "Default value for DIM is {}".format(DEF_DIM)
+    parser.add_argument(
+        '-d', '--dim', metavar='dim', help=dim_help, 
+        type=int, 
+        default=DEF_DIM
+    )
+
+    ## Repetitions
+    rep_help = "Number of iterations of the selected operation to obtain mean "
+    rep_help += "execution time."
+    rep_help += "Default value is {}".format(DEF_REP)
+    parser.add_argument(
+        '-r', '--rep', metavar='rep', help='rep_help',
+        type=int,
+        default=DEF_REP
+    )
+
+    ## Energy measure time
+    powertime_help = "Time (in seconds) to be spent in measuring energy "
+    powertime_help += "consumption for each frequency"
+    powertime_help += "Default value is {}".format(DEF_POWERTIME)
+    parser.add_argument(
+        '-t', '--powertime', metavar='powertime', help=powertime_help,
+        type=float,
+        default=DEF_POWERTIME
+    )
+
+    ## Log files path
+    log_help = "Path to folder where log files will be generated."
+    log_help += "If not specified, log files will not be produced"
+    parser.add_argument(
+        '-l', '--log', metavar='log', help=log_help,
+        nargs='?',
+        type=str,
+        default=argparse.SUPPRESS
+    )
+
     # Positional arguments.
-    work_help = "numpy action to be tested: intproduct transpose sort"
+    work_help = "Name of operation to be tested: intproduct inttranspose "
+    work_help += "intsort intscalar floatproduct floattranspose floatsort "
+    work_help += "floatscalar"
     parser.add_argument('work', help=work_help)
-
-    ##intprod_help = "multiplication of random integer matrices" 
-    ##trans_help = "transposal of random matrix"
-    ##sort_help = "sorting of random list"
 
     return parser
 
@@ -656,16 +602,27 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    sockets = args.socket
+    # Socket must be selected for pyRAPL measurement.
+    if args.power:
+        if 'sockets' not in args:
+            print("ERROR: sockets must be selected to measure power.")
+            exit()
 
-    try:
-        pyRAPL.setup(
-            devices = [pyRAPL.Device.PKG],
-            socket_ids = sockets
+        try:
+            pyRAPL.setup(
+                devices = [pyRAPL.Device.PKG],
+                socket_ids = args.sockets
             )
-    except:
-        print("ERROR: check if selected sockets exist.")
-        exit()
+        except:
+            print("ERROR: check if selected sockets exist.")
+            exit()
+
+    # Get cores
+    cores = []
+    if 'cores' in args:
+        cores = args.cores
+    elif 'sockets' in args:
+        cores = get_cores(args.sockets)
 
     # Gets closest frequencies to the selected ones.
     freqs = []
@@ -676,34 +633,18 @@ def main():
     else:
         freqs = AVAILABLE_FREQS
 
-    size = args.dim
-    mtime = args.time
-
     # Set log flag.
     log = None
     if 'log' in args:
         log = args.log
 
-    # TODO clearly simplify.
-    if args.work == 'intproduct':
-        test_operation('intproduct', freqs, sockets, mtime, size, log)
-    if args.work == 'floatproduct':
-        test_operation('floatproduct', freqs, sockets, mtime, size, log)
+    # Measurement
+    if args.time:
+        time_measure(args.work, freqs, cores, args.dim, args.rep, log)
 
-    if args.work == 'inttranspose':
-        test_operation('inttranspose', freqs, sockets, mtime, size, log)
-    if args.work == 'floattranspose':
-        test_operation('floattranspose', freqs, sockets, mtime, size, log)
+    if args.power:
+        power_measure(args.work, freqs, cores, args.dim, log)
 
-    if args.work == 'intsort':
-        test_operation('intsort', freqs, sockets, mtime, size, log)
-    if args.work == 'floatsort':
-        test_operation('floatsort', freqs, sockets, mtime, size, log)
-                
-    if args.work == 'intscalar':
-        test_operation('intscalar', freqs, sockets, mtime, size, log)
-    if args.work == 'floatscalar':
-        test_operation('floatscalar', freqs, sockets, mtime, size, log)
 
 if __name__ == '__main__':
     main()
