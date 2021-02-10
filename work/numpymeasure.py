@@ -539,6 +539,24 @@ def get_parser():
         type=int
     )
 
+    ## Measure process affinity: cores or sockets
+    affinity = parser.add_mutually_exclusive_group()
+
+    affcores_help = "The cores in which the measure process will be processed."
+    affinity.add_argument(
+        '--affcores', metavar='affcores', help=affcores_help,
+        nargs='+',
+        type=int
+    )
+
+    affsockets_help = "The sockets in whose cores the measure process will be "
+    affsockets_help += "processed."
+    affinity.add_argument(
+        '--affsockets', metavar='affsockets', help=affsockets_help,
+        nargs='+',
+        type=int
+    )
+
     # Optional arguments
     ## Frequencies
     freq_help =  "FREQS frequencies in which the selected operation will be "
@@ -590,6 +608,9 @@ def get_parser():
         default=argparse.SUPPRESS
     )
 
+    
+
+
     # Positional arguments.
     work_help = "Name of operation to be tested: intproduct inttranspose "
     work_help += "intsort intscalar floatproduct floattranspose floatsort "
@@ -616,6 +637,12 @@ def main():
         except:
             print("ERROR: check if selected sockets exist.")
             exit()
+
+    # Measure process affinity
+    if 'affcores' in args:
+        os.sched_setaffinity(0, args.affcores)
+    elif 'addsockets' in args:
+        os.sched_setaffinity(0, get_cores(args.affsockets))
 
     # Get cores
     cores = []

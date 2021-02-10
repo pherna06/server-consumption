@@ -1,6 +1,19 @@
 import numpy as np
 
 import time
+import argparse
+import os
+
+# MODIFY ACCORDING TO YOUR MACHINE CPU CONFIGURATION.
+CPU_LIST = list(range(16))
+SOCKET_LIST = [0, 1]
+SOCKET_DICT = {
+        0: CPU_LIST[0:8], 
+        1: CPU_LIST[8:16]
+}
+
+# DIMENSION
+DEF_DIM = 1000
 
 ####################
 ### CALL UTILITY ###
@@ -316,3 +329,87 @@ def float_scalar(size=DEF_MATRIX, rep=DEF_REP):
         acc += (end - start)
 
     return (acc / rep)
+
+
+#########################
+### COMMAND INTERFACE ###
+#########################
+
+def get_parser():
+    desc = ""
+    parser = argparse.ArgumentParser(description = desc)
+
+    ## Execution: cores or sockets
+    cpucores = parser.add_mutually_exclusive_group()
+
+    cores_help = "The operation is executed in each specified core."
+    cpucores.add_argument(
+        '-c', '--cores', metavar='cores', help=cores_help,
+        nargs='+',
+        type=int,
+    )
+
+    sockets_help = "The operation is executed in the cores of the specified "
+    sockets_help += "sockets."
+    cpucores.add_argument(
+        '-s', '--sockets', metavar='sockets', help=sockets_help,
+        nargs='+',
+        type=int
+    )
+
+    # Optional arguments
+    ## Dimension
+    dim_help = "Dimension used for the Numpy elements in the operation."
+    dim_help += "For matrices, size is DIM X DIM."
+    dim_help += "Default value for DIM is {}".format(DEF_DIM)
+    parser.add_argument(
+        '-d', '--dim', metavar='dim', help=dim_help, 
+        type=int, 
+        default=DEF_DIM
+    )
+
+    ## Repetitions
+    rep_help = "Number of iterations of the selected operation to obtain mean "
+    rep_help += "execution time."
+    rep_help += "Default value is {}".format(DEF_REP)
+    parser.add_argument(
+        '-r', '--rep', metavar='rep', help='rep_help',
+        type=int,
+        default=DEF_REP
+    )
+  
+    # Positional arguments.
+    work_help = "Name of operation to be tested: intproduct inttranspose "
+    work_help += "intsort intscalar floatproduct floattranspose floatsort "
+    work_help += "floatscalar"
+    parser.add_argument('work', help=work_help)
+
+    return parser
+
+def get_cores(sockets):
+    rg = []
+    for skt in sockets:
+        rg.extend(SOCKET_DICT[skt])
+
+    return rg
+
+def main():
+    """
+        Given the name of an operation, it is executed with the specified
+        affinity, dimension and repetitions. Execution time is printed after
+        operation termination.
+    """
+    parser = get_parser()
+    args = parser.parse_args()
+
+    # Set operation affinity
+    if 'affcores' in args:
+        os.sched_setaffinity(0, args.affcores)
+    elif 'addsockets' in args:
+        os.sched_setaffinity(0, get_cores(args.affsockets))
+
+    timems = OPERATIONS[args.work](size=args.dim, rep=args.rep) * 1000
+    print("Mean execution time:", timems, "ms")
+
+if __name__ == '__main__':
+    main()
