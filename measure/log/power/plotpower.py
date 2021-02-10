@@ -1,6 +1,8 @@
 import os
 import matplotlib.pyplot as plt
 
+# TODO: refactor to just handle power plot OR implement general utility 'plotdata.py'
+
 IMAGEPATH = 'img/'
 STYLES = {
         'intproduct': 'r-',
