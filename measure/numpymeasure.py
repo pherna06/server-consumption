@@ -3,6 +3,7 @@ import pyRAPL
 import os
 import cpufreq
 import signal
+import time
 from filelock import FileLock
 
 import powerutil.numpypower as npp
@@ -128,10 +129,10 @@ def get_cores(sockets):
 
     return rg
 
-def rapl_power(label, time, sockets):
+def rapl_power(label, powertime, sockets):
         meter = pyRAPL.Measurement(label=label)
         meter.begin()
-        time.sleep(time)
+        time.sleep(powertime)
         meter.end()
 
         results = {}
@@ -420,6 +421,7 @@ def time_measure(work, freqs, cores, size, rep, log):
         print(f"Mean execution time: {time_results[freq][-1]:.3f} ms")
 
     os.remove(timepath)
+    os.remove(lockpath)
 
     # Writing log files
     if log is not None:
@@ -483,11 +485,11 @@ def power_measure(work, freqs, sockets, size, powertime, log):
             os.kill(pid, signal.SIGKILL)
 
         # Time mean.
-        count = size(power_results[freq])
-        power_sum = sum(power_results[freq])
+        count = len(power_results[freq])
+        power_sum = sum(power_results[freq].values())
         power_results[freq][-1] = power_sum / count
 
-        print(f"Mean execution time: {power_results[freq][-1]:.3f} ms")
+        print(f"Mean execution power: {power_results[freq][-1]:.3f} w")
 
     # Writing log files
     if log is not None:
