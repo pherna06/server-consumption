@@ -1,15 +1,11 @@
 import argparse
-from numpy.testing._private.utils import requires_memory
 import pyRAPL
-import time
-import subprocess
 import os
-import signal
 import cpufreq
 from filelock import FileLock
 
-import numpypower as npp
-import numpytime as npt
+import power.numpypower as npp
+import time.numpytime as npt
 
 # MODIFY ACCORDING TO YOUR MACHINE CPU CONFIGURATION.
 CPU_LIST = list(range(16))
@@ -253,6 +249,9 @@ def time_logs(workstr, time_results, logpath):
 
         time_logf.write("##########################\n\n") # 25#
 
+    time_logf.close()
+    time_csvf.close()
+
 
 def power_logs(workstr, power_results, logpath):
     """
@@ -311,6 +310,9 @@ def power_logs(workstr, power_results, logpath):
         power_logf.write(f"Mean: {power_mean:.3f} w\n")
 
         power_logf.write("#########################\n\n") # 25#
+    
+    power_logf.close()
+    power_csvf.close()
 
 
 ###################
@@ -641,7 +643,7 @@ def main():
     # Measure process affinity
     if 'affcores' in args:
         os.sched_setaffinity(0, args.affcores)
-    elif 'addsockets' in args:
+    elif 'affsockets' in args:
         os.sched_setaffinity(0, get_cores(args.affsockets))
 
     # Get cores

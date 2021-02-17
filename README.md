@@ -131,8 +131,96 @@ CPU can be returned to its default configuration using:
 cpufreq_utils.py -r
 ```
 
+### Measuring execution time and energy consumption
 
+A command-line interface, [numpymeasure](/measure/numpymeasure.py), is used to
+measure execution time and power consumption of certain operations for 
+particular frequencies from the [NumPy](https://github.com/numpy/numpy) module.
 
+#### Execution time operations
+
+Functions for handling the calculation of execution times for each operation
+are implemented separately in [numpytime.py](/time/numpytime.py). 
+
+This script has its own command for individually processing a particular
+operation and obtaining its mean execution time directly in prompt.
+
+```
+numpytime floatproduct -c 2 3 4 -d 200 -r 1000
+// Retrieves the mean execution time obtained from calculating the product of
+// 200 x 200 real matrices, 1000 times, restringed to cores 2, 3 and 4.
+```
+
+```
+numpytime floatproduct -s 1 -d 200 -r 1000
+// Similar to previous command, but restringed to cores of socket no. 1.
+```
+
+#### Energy consumption operations
+
+Functions for handling the calculation of power consumptions for each operation
+are implemented separately in [numpypower.py](/power/numpypower.py).
+
+This script has its own command too, but as opposed to *numpytime.py*, no
+measurements are obtained. It is used to launch persistent processes that will
+perform a particular operation in the assigned cores until they are killed
+externally.
+
+```
+numpypower intsort -c 2 3 4 -d 10000
+// Executes a process, assigned to cores 2, 3 and 4, that performs the sorting
+// of a 10000 integers array repeatedly.
+```
+
+```
+numpypower intsort -s 1 -d 10000
+// Similar to previous command, but restringed to cores of socket no. 1.
+```
+
+*\* To facilitate external termination, the PID of the process is prompted.*
+
+#### Measurement tool
+
+The objective of calculating these metrics rely on doing so in function of the
+CPU frequency. *numpymeasure.py* script provides a general purpose command-line
+interface to do so.
+
+```
+numpymeasure floatproduct --time -c 2 3 4 -d 1000 -r 500 -l /measure/log/time/ -affcores 0 1
+// Measures the mean execution time of calculating the product of 1000 x 1000 
+// real matrices, repeated 500 times, for each core 2, 3 and 4.
+// As no frequencies are specified, it will retrieve the time for each 
+// available frequency. Log files will be generated in the provided folder
+// path '/measure/log/time/'.
+// The main process will be assigned to cores 0 and 1.
+```
+
+```
+numpymeasure floatproduct --power -s 1 -f 1200 1600 2000 -d 1000 -t 0.5 --affsockets 0
+// Measures the power consumption from repeatedly calculating the product of
+// 1000 x 1000 real matrices for each core in socket no. 1, for frequencies
+// 1200, 1600 and 300 MHz.
+// Power consumption is measured at socket level and during 0.5 seconds.
+// As no log path is specified, log files will not be generated.
+// The main process wiil be assigned to cores in socket no. 0.
+```
+
+Requirements:
+* Either *--time* or *--power* (but not both) must be specified, as the metric
+  to be calculated.
+* Either cores \[*-c*\] or sockets \[*-s*\] (but not both) must be specified.
+  Particularly, when calculating power consumption, only sockets are valid.
+* Either *--affcores* or *--affsockets* (but not both) can be specified, as the
+  cores assigned to the process that handles measurement results. It should be
+  assigned to cores other than the ones dedicated to the selected operation.
+* Dimension \[*-d*\] value is optional; set by default to 1000.
+* Repeat \[*-r*\] value is optional; set by default to 1. Used in *--time*.
+* Powertime \[*-t*\] value is optional; set by default to 1.0. It indicates the
+  time until energy variation (in Jules) is measured; power being calculated
+  dividing energy between this time. Used in *--power*.
+
+*\* For each operation, 2 log files will be generated: a **.csv** with raw data and
+a more read-friendly **.log**.*
 
 ## Credits
 
