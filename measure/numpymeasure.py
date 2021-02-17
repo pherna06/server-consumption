@@ -2,6 +2,7 @@ import argparse
 import pyRAPL
 import os
 import cpufreq
+import signal
 from filelock import FileLock
 
 import powerutil.numpypower as npp
@@ -126,6 +127,20 @@ def get_cores(sockets):
         rg.extend(SOCKET_DICT[skt])
 
     return rg
+
+def rapl_power(label, time, sockets):
+        meter = pyRAPL.Measurement(label=label)
+        meter.begin()
+        time.sleep(time)
+        meter.end()
+
+        results = {}
+        m_time = meter._results.duration # micro-s
+        for skt in sockets:
+            m_energy = meter._results.pkg[skt] # micro-J
+            results[skt] = m_energy / m_time # watts
+
+        return results
 
 
 ######################
@@ -410,7 +425,7 @@ def time_measure(work, freqs, cores, size, rep, log):
     if log is not None:
         time_logs(work, time_results, log)
 
-def power_measure(work, freqs, cores, size, log):
+def power_measure(work, freqs, sockets, size, powertime, log):
     """
         Sets the environment to measure the energy consumption of the specified
         operation. For each frequency and core, a forked process is created in
@@ -425,14 +440,18 @@ def power_measure(work, freqs, cores, size, log):
         freqs : list
             List of frequencies (in KHz) in which the execution time will be
             measured.
-        cores : list
-            List of cores where the operation will be executed.
+        sockets : list
+            List of sockets where the operation will be executed.
         size : int
             Dimension of the Numpy elements used in the operation.
+        powertime : float
+            Time the pyRAPL utility will spend measuring energy consumption.
         log : str
             Path of the folder where log files will be generated.
             If None, log files will not be produced.
     """
+    cores = get_cores(sockets)
+
     # Set frequencies to minimum allowed frequency.
     # so that changing the frequency implies raising it.
     minf = AVAILABLE_FREQS[0]
@@ -441,10 +460,6 @@ def power_measure(work, freqs, cores, size, log):
     # Dict to store results
     power_results = {}
 
-    # Shared temporal file and lock:
-    powerpath = 'power.temp'
-    lockpath = 'lock.temp'
-
     # Measure execution time for each frequency in each implied core.
     freqs = sorted(freqs)
     for freq in freqs:
@@ -452,48 +467,27 @@ def power_measure(work, freqs, cores, size, log):
 
         print(f"Measuring energy consumption with {freq // 1000} MHz.")
 
-        # Remove conflicting file.
-        if os.path.exists(powerpath):
-            os.remove(powerpath)
-
-        # Create file.
-        wf = open(powerpath, 'a+')
-        wf.close()
-
         # Forks pid list
         pidls = []
         for core in cores:
             pidls.append( os.fork() )
             if pidls[-1] == 0:
-                power_fork(work, core, size, powerpath, lockpath)
+                power_fork(work, core, size)
                 exit(0)
+
+        # Measure.
+        power_results[freq] = rapl_power(work, powertime, sockets)
 
         # Wait for all forked processes
         for pid in pidls:
-            os.waitpid(pid, 0)
-
-        # Get this frequency results.
-        wf = open(powerpath, 'r')
-        wflines = wf.readlines()
-        wf.close()
-        
-        time_sum = 0.0
-        power_results[freq] = {}
-        for line in wflines:
-            corestr, worktimestr = line.split()
-            core = int(corestr)
-            worktime = float(worktimestr)
-
-            power_results[freq][core] = worktime
-            time_sum += worktime
+            os.kill(pid, signal.SIGKILL)
 
         # Time mean.
-        count = len(wflines)
-        power_results[freq][-1] = time_sum / count
+        count = size(power_results[freq])
+        power_sum = sum(power_results[freq])
+        power_results[freq][-1] = power_sum / count
 
         print(f"Mean execution time: {power_results[freq][-1]:.3f} ms")
-
-    os.remove(powerpath)
 
     # Writing log files
     if log is not None:
@@ -611,7 +605,7 @@ def get_parser():
         '-l', '--log', metavar='log', help=log_help,
         nargs='?',
         type=str,
-        default=argparse.SUPPRESS
+        default=None
     )
 
     
@@ -629,6 +623,21 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
+    # Measure process affinity
+    if 'affcores' in args:
+        os.sched_setaffinity(0, args.affcores)
+    elif 'affsockets' in args:
+        os.sched_setaffinity(0, get_cores(args.affsockets))
+
+    # Gets closest frequencies to the selected ones.
+    freqs = []
+    if 'freq' in args:
+        userfs = args.freq
+        for freq in userfs:
+            freqs.append( closest_frequency(freq * 1000) )
+    else:
+        freqs = AVAILABLE_FREQS
+
     # Socket must be selected for pyRAPL measurement.
     if args.power:
         if 'sockets' not in args:
@@ -644,39 +653,17 @@ def main():
             print("ERROR: check if selected sockets exist.")
             exit()
 
-    # Measure process affinity
-    if 'affcores' in args:
-        os.sched_setaffinity(0, args.affcores)
-    elif 'affsockets' in args:
-        os.sched_setaffinity(0, get_cores(args.affsockets))
+        power_measure(args.work, freqs, args.sockets, args.dim, args.powertime, args.log)
 
-    # Get cores
-    cores = []
-    if 'cores' in args:
-        cores = args.cores
-    elif 'sockets' in args:
-        cores = get_cores(args.sockets)
-
-    # Gets closest frequencies to the selected ones.
-    freqs = []
-    if 'freq' in args:
-        userfs = args.freq
-        for freq in userfs:
-            freqs.append( closest_frequency(freq * 1000) )
-    else:
-        freqs = AVAILABLE_FREQS
-
-    # Set log flag.
-    log = None
-    if 'log' in args:
-        log = args.log
-
-    # Measurement
     if args.time:
-        time_measure(args.work, freqs, cores, args.dim, args.rep, log)
+        # Get cores
+        cores = []
+        if 'cores' in args:
+            cores = args.cores
+        elif 'sockets' in args:
+            cores = get_cores(args.sockets)
 
-    if args.power:
-        power_measure(args.work, freqs, cores, args.dim, log)
+        time_measure(args.work, freqs, cores, args.dim, args.rep, args.log)
 
 
 if __name__ == '__main__':
