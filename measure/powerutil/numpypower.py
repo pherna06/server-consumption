@@ -34,19 +34,6 @@ def powerop(op, config):
 ########################
 ### NUMPY OPERATIONS ###
 ########################
-
-# DICT RELATION
-OPERATIONS = {
-    'intproduct':       int_product,
-    'inttranspose':     int_transpose,
-    'intsort':          int_sort,
-    'intscalar':        int_scalar,
-    'floatproduct':     float_product,
-    'floattranspose':   float_transpose,
-    'floatsort':        float_sort,
-    'floatscalar':      float_scalar
-}
-
 # DEFAULT RANDOM MATRICES SIZE.
 MATRIX_SIZE = 1000
 LIST_SIZE = MATRIX_SIZE*MATRIX_SIZE
@@ -198,6 +185,19 @@ def float_scalar(size=MATRIX_SIZE):
     while(True):
         matB = matA + floatN
         
+
+# DICT RELATION
+OPERATIONS = {
+    'intproduct':       int_product,
+    'inttranspose':     int_transpose,
+    'intsort':          int_sort,
+    'intscalar':        int_scalar,
+    'floatproduct':     float_product,
+    'floattranspose':   float_transpose,
+    'floatsort':        float_sort,
+    'floatscalar':      float_scalar
+}
+
 
 #########################
 ### COMMAND INTERFACE ###

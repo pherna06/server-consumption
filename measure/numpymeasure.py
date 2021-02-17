@@ -4,8 +4,8 @@ import os
 import cpufreq
 from filelock import FileLock
 
-import power.numpypower as npp
-import time.numpytime as npt
+import powerutil.numpypower as npp
+import timeutil.numpytime as npt
 
 # MODIFY ACCORDING TO YOUR MACHINE CPU CONFIGURATION.
 CPU_LIST = list(range(16))
@@ -376,7 +376,7 @@ def time_measure(work, freqs, cores, size, rep, log):
         for core in cores:
             pidls.append( os.fork() )
             if pidls[-1] == 0:
-                time_fork(work, core, size, timepath, lockpath)
+                time_fork(work, core, size, rep, timepath, lockpath)
                 exit(0)
 
         # Wait for all forked processes
@@ -513,13 +513,13 @@ def get_parser():
 
     time_help = "Measures execution time of the specified operation."
     metrics.add_argument(
-        '--time', metavar='time', help=time_help,
+        '--time', help=time_help,
         action='store_true'
     )
 
     power_help = "Measures energy consumption of the specified operation."
     metrics.add_argument(
-        '--power', metavar='power', help=power_help,
+        '--power', help=power_help,
         action='store_true'
     )
 
@@ -531,6 +531,7 @@ def get_parser():
         '-c', '--cores', metavar='cores', help=cores_help,
         nargs='+',
         type=int,
+        default=argparse.SUPPRESS
     )
 
     sockets_help = "The operation is executed in the cores of the specified "
@@ -538,7 +539,8 @@ def get_parser():
     cpucores.add_argument(
         '-s', '--sockets', metavar='sockets', help=sockets_help,
         nargs='+',
-        type=int
+        type=int,
+        default=argparse.SUPPRESS
     )
 
     ## Measure process affinity: cores or sockets
@@ -548,7 +550,8 @@ def get_parser():
     affinity.add_argument(
         '--affcores', metavar='affcores', help=affcores_help,
         nargs='+',
-        type=int
+        type=int,
+        default=argparse.SUPPRESS
     )
 
     affsockets_help = "The sockets in whose cores the measure process will be "
@@ -556,7 +559,8 @@ def get_parser():
     affinity.add_argument(
         '--affsockets', metavar='affsockets', help=affsockets_help,
         nargs='+',
-        type=int
+        type=int,
+        default=argparse.SUPPRESS
     )
 
     # Optional arguments
@@ -585,7 +589,7 @@ def get_parser():
     rep_help += "execution time."
     rep_help += "Default value is {}".format(DEF_REP)
     parser.add_argument(
-        '-r', '--rep', metavar='rep', help='rep_help',
+        '-r', '--rep', metavar='rep', help=rep_help,
         type=int,
         default=DEF_REP
     )

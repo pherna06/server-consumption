@@ -42,17 +42,6 @@ def timeop(op, config):
 ### NUMPY OPERATIONS ###
 ########################
 
-# DICT RELATION
-OPERATIONS = {
-    'intproduct':       int_product,
-    'inttranspose':     int_transpose,
-    'intsort':          int_sort,
-    'intscalar':        int_scalar,
-    'floatproduct':     float_product,
-    'floattranspose':   float_transpose,
-    'floatsort':        float_sort,
-    'floatscalar':      float_scalar
-}
 
 # DEFAULT RANDOM MATRICES SIZE.
 DEF_MATRIX = 1000
@@ -330,6 +319,17 @@ def float_scalar(size=DEF_MATRIX, rep=DEF_REP):
 
     return (acc / rep)
 
+# DICT RELATION
+OPERATIONS = {
+    'intproduct':       int_product,
+    'inttranspose':     int_transpose,
+    'intsort':          int_sort,
+    'intscalar':        int_scalar,
+    'floatproduct':     float_product,
+    'floattranspose':   float_transpose,
+    'floatsort':        float_sort,
+    'floatscalar':      float_scalar
+}
 
 #########################
 ### COMMAND INTERFACE ###
