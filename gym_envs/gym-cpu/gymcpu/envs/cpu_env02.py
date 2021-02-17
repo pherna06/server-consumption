@@ -90,7 +90,7 @@ class CPUEnv02(gym.Env):
         ### Observation space:
         #   Interval partition of power range of CPU.
         #   Shape of intervals: (power_i, power_i+1]
-        self.observation_space = gym.spaces.Discrete(self.INTERVALS)
+        self.observation_space = gym.spaces.Discrete(self.INTERVALS + 1)
         
         #   _power: current power consumption
         #   _state: interval of current power consumption
@@ -223,7 +223,13 @@ class CPUEnv02(gym.Env):
     ### AUXILIARY METHODS
 
     def get_state(self, power):
+        if power < self.MINPOWER:
+            return 1
+        if self.MAXPOWER < power:
+            return self.INTERVALS - 1
+        
         abspow = power - self.MINPOWER
+
         return ceil(abspow / self.POWERSTEP)
 
     def set_frequency(self, freq):

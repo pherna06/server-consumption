@@ -4,8 +4,7 @@ from gymcpu.envs.cpu_env00 import CPUEnv00
 from gymcpu.envs.cpu_env01 import CPUEnv01
 from gymcpu.envs.cpu_env02 import CPUEnv02
 
-from gym_envs.gymtrain import ENVIRONMENTS
-import power.numpypower as npp
+import numpypower as npp
 
 import ray
 import ray.rllib.agents.ppo as ppo
@@ -16,7 +15,7 @@ import pyRAPL
 import os
 import cpufreq
 import shutil
-
+import signal
 
 
 ENVIRONMENTS = {
@@ -139,11 +138,13 @@ def agent_measure(cpuenv, agent, measures):
             state, _, done, info = cpuenv.step(action)
 
             if done:
-                freq = info['frequency']
-                if freq in results:
-                    results[freq] += 1
-                else:
-                    results[freq] = 0
+                break
+                
+        freq = info['frequency']
+        if freq in results:
+            results[freq] += 1
+        else:
+            results[freq] = 1
 
     return results
 
@@ -151,13 +152,13 @@ def agent_measure(cpuenv, agent, measures):
 
 def learn_and_measure(
     env, work, dim, powers, powertime, epochs, repeat,
-    sockets, logpath, chkptpath, savepath
+    socket, logpath, chkptpath, savepath
 ):
     """
     """
     ## WORKLOAD
     pidls = []
-    for core in get_cores(sockets):
+    for core in get_cores([socket]):
         pidls.append( os.fork() )
         if pidls[-1] == 0:
             power_fork(work, core, dim)
@@ -173,8 +174,8 @@ def learn_and_measure(
     for powerpoint in powers:
         # AGENT
         env_config = {
-            'socket': sockets,
-            'cores': get_cores(sockets),
+            'socket': socket,
+            'cores': get_cores([socket]),
             'limit': powerpoint,
             'time': powertime
         }
@@ -197,12 +198,13 @@ def learn_and_measure(
         agent.restore(chkpt_file)
         
         point_results = agent_measure(
-            cpuenv=env,
+            cpuenv=cpuenv,
             agent=agent,
             measures=repeat
         )
 
         results[powerpoint] = point_results
+        print(point_results)
 
         # SAVE
         if savepath is not None:
@@ -212,7 +214,7 @@ def learn_and_measure(
     ## END WORKLOAD
     # Wait for all forked processes
     for pid in pidls:
-        os.waitpid(pid, 0)
+        os.kill(pid, signal.SIGKILL)
 
     ## RESULTS
     train_logpath = logpath + work + '.train.log'
@@ -227,7 +229,7 @@ def learn_and_measure(
     train_csvf = open(train_csvpath, 'w')
 
     for powerpoint in powers:
-        train_logf.write("Powerpoint: {powerpoint:.3f} w\n")
+        train_logf.write(f"Powerpoint: {powerpoint:.3f} w\n")
         train_logf.write("-------------------------\n") # 25-
         train_logf.write("Frequency (MHz)   Times\n")
 
@@ -242,7 +244,7 @@ def learn_and_measure(
             train_csvf.write(f"{freq}, {ftimes}\n")
 
             train_logf.write(f"{freq//1000:<15}   {ftimes:<5}   |")
-            [train_logf.write("·" for _ in range(ftimes))]
+            [train_logf.write("·") for _ in range(ftimes)]
             train_logf.write("\n")
 
         train_logf.write("#########################\n\n") # 25#
@@ -267,6 +269,7 @@ def get_parser():
         '--powlist', metavar='powlist', help=powerlist_help,
         nargs='+',
         type=float,
+        default=argparse.SUPPRESS
     )
 
     powerstep_help = "Step value to partition the power bandwidth into the "
@@ -276,7 +279,8 @@ def get_parser():
     power.add_argument(
         '--powstep', metavar='powstep', help=powerstep_help,
         nargs=1,
-        type=float
+        type=float,
+        default=argparse.SUPPRESS
     )
 
     powerpoints_help = "Number of power 'points', for which agents will be "
@@ -285,15 +289,15 @@ def get_parser():
     power.add_argument(
         '--powpoints', metavar='powpoints', help=powerpoints_help,
         nargs=1,
-        type=int
+        type=int,
+        default=argparse.SUPPRESS
     )
 
     ## Execution: socket.
-    sockets_help = "The operation is executed in the cores of the specified "
-    sockets_help += "sockets."
+    socket_help = "The operation is executed in the specified socket."
+    socket_help += "sockets."
     parser.add_argument(
-        '-s', '--sockets', metavar='sockets', help=sockets_help,
-        nargs='+',
+        '-s', '--socket', metavar='socket', help=socket_help,
         type=int,
         required=True
     )
@@ -305,14 +309,16 @@ def get_parser():
     affinity.add_argument(
         '--affcores', metavar='affcores', help=affcores_help,
         nargs='+',
-        type=int
+        type=int,
+        default=argparse.SUPPRESS
     )
 
     affsockets_help = "The sockets in whose cores the agent will be trained."
     affinity.add_argument(
         '--affsockets', metavar='affsockets', help=affsockets_help,
         nargs='+',
-        type=int
+        type=int,
+        default=argparse.SUPPRESS
     )
 
     # Optional arguments
@@ -341,7 +347,6 @@ def get_parser():
     epochs_help += "Default value is {}.".format(DEF_EPOCHS)
     parser.add_argument(
         '-e', '--epochs', metavar='epochs', help=epochs_help,
-        nargs=1,
         type=int,
         default=DEF_EPOCHS
     )
@@ -351,7 +356,6 @@ def get_parser():
     repeat_help += "for each power point."
     parser.add_argument(
         '-r', '--repeat', metavar='repeat', help=repeat_help,
-        nargs=1,
         type=int,
         default=DEF_REPEAT
     )
@@ -406,7 +410,7 @@ def main():
     try:
         pyRAPL.setup(
             devices = [pyRAPL.Device.PKG],
-            socket_ids = args.sockets
+            socket_ids = [args.socket]
         )
     except:
         print("ERROR: check if selected sockets exist.")
@@ -433,7 +437,7 @@ def main():
     # Get power points
     powers = []
     if 'powlist' in args:
-        powers = args.powers
+        powers = args.powlist
     if 'powstep' in args: # Initial point: DEF_MINPOWER
         ppoint = DEF_MINPOWER
         while ppoint <= DEF_MAXPOWER:
@@ -454,7 +458,7 @@ def main():
         powertime=args.powertime,
         epochs=args.epochs,
         repeat=args.repeat,
-        sockets=args.sockets, 
+        socket=args.socket, 
         logpath=args.log, 
         chkptpath=args.chkpt, 
         savepath=args.save
