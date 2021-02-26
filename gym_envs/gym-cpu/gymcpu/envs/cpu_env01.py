@@ -9,41 +9,42 @@ import numpy as np
 
 class CPUEnv01(gym.Env):
     ### DEFAULT PERSONAL VALUES
+    DEF_POWERLIMIT = 65.0
+
     DEF_SOCKET = 0
-    DEF_CORES = [0,1,2,3,4,5,6,7]
+    DEF_CORES  = [0,1,2,3,4,5,6,7]
 
     DEF_MAXSTEPS = 20
-    DEF_SEED = None
-    DEF_TIME = 1
+    DEF_SEED     = None
     
     DEF_MINPOWER = 15.0 - 5.0
     DEF_MAXPOWER = 115.0 + 5.0
 
-    DEF_POWERLIMIT = 65.0
+    DEF_DECISION = 0.25 # 4 decisions / sec
 
-    def __init__(self,
-                 socket=DEF_SOCKET,
-                 cores=DEF_CORES,
-                 limit=DEF_POWERLIMIT,
-                 steps=DEF_MAXSTEPS,
-                 time=DEF_TIME,
-                 seed=DEF_SEED,
-                 minpow=DEF_MINPOWER,
-                 maxpow=DEF_MAXPOWER
-                 ):
+    def __init__(self, **config):
         ### CPUEnv constant values.
+        #   LIMIT power limit for environment functionality
         #   SOCKET socket to get pyRAPL measures
         #   CORES CPU cores assigned to SOCKET
-        #   LIMIT power limit for environment functionality
         #   MAXSTEPS maximum iterations for environment
         #   TIME time spent in each rapl measurement
-        self.SOCKET = socket
-        self.CORES = cores
-        self.LIMIT = limit
-        self.MAXSTEPS = steps
-        self.TIME = time
-        self.MINPOWER = minpow
-        self.MAXPOWER = maxpow
+        self.LIMIT  = config.get('power',  DEF_POWERLIMIT)
+        
+        self.SOCKET = config.get('socket', DEF_SOCKET)
+        self.CORES  = config.get('cores',  DEF_CORES)
+        
+        self.MAXSTEPS = config.get('maxsteps', DEF_MAXSTEPS)
+        self.SEED     = config.get('seed',     DEF_SEED)
+
+        self.MINPOWER = config.get('minpower', DEF_MINPOWER)
+        self.MAXPOWER = config.get('maxpower', DEF_MAXPOWER)
+        assert(self.MINPOWER < self.MAXPOWER)
+
+        self.DECISION_TIME = config.get('decision_time', DEF_DECISION)
+        self.MEASURE_TIME  = config.get('measure_time',  self.DECISION_TIME)
+        self.SLEEP_TIME    = self.DECISION_TIME - self.MEASURE_TIME
+        assert(self.SLEEP_TIME >= 0)
 
         ### Default metadata.
         self.metadata = { 'render.modes': ['human'] }
@@ -81,8 +82,8 @@ class CPUEnv01(gym.Env):
         #   Power of CPU.
         #   _state; current power consumption
         self.observation_space = gym.spaces.Box(
-                low = self.MINPOWER,
-                high = self.MAXPOWER,
+                low   = self.MINPOWER,
+                high  = self.MAXPOWER,
                 shape = (1,),
                 dtype = np.float32
                 )
@@ -90,12 +91,9 @@ class CPUEnv01(gym.Env):
         self._state = [0.0]
         
         ### CPUEnv: random number generator.
-        #   _seed: numeric seed for the enviroment rng
-        #   _rng: random number generator
-        self._seed = seed
-        self._rng = None
-
-        self.seed( self._seed )
+        #   RNG random number generator
+        self.RNG = None
+        self.seed( self.SEED )
 
         ### CPUEnv: general environment variables.
         #   _reward: accumulated environment reward
@@ -103,26 +101,31 @@ class CPUEnv01(gym.Env):
         #   _info: dict for auxiliary debug values
         #   _count: counts the number of steps taken during environment action
         self._reward = None
-        self._done = None
-        self._info = None
-        self._count = None
+        self._done   = None
+        self._info   = None
+        self._count  = None
 
         self.reset()
 
     def reset(self):
         ### General environment variables.
         self._reward = 0
-        self._done = False
-        self._info = {}
-        self._count = 0
+        self._done   = False
+        self._info   = {}
+        self._count  = 0
 
-        ### Set random initial frequency and measure power.
-        self._freqpos = self._rng.choice( np.arange( len(self._frequencies) ) )
+        ### Decide random initial frequency.
+        self._freqpos = self.RNG.choice( np.arange( len(self._frequencies) ) )
         freq = self._frequencies[ self._freqpos ]
-        self.set_frequency(freq)
 
-        pyRAPL.setup( devices=[pyRAPL.Device.PKG], socket_ids=[self.SOCKET] )
-        self._state[0] = self.measure_power('Reset')
+        ### Initialize pYRAPL.
+        pyRAPL.setup( 
+            devices=[pyRAPL.Device.PKG], 
+            socket_ids=[self.SOCKET] 
+            )
+
+        ### Set frequency, wait and measure power.
+        self._state[0] = self.set_wait_measure(freq, 'Reset')
 
         return self._state        
 
@@ -137,24 +140,22 @@ class CPUEnv01(gym.Env):
         # Boolean for below/above limit.
         overlimit = True if self._state[0] > self.LIMIT else False
 
-        ### ACTION:
+        ### DECIDE ACTION:
         if action == self.RAISE_FREQ:
             if self._freqpos == len(self._frequencies) - 1:
                 pass
             else:
                 self._freqpos += 1
-                freq = self._frequencies[ self._freqpos ]
-                self.set_frequency(freq)
         elif action == self.LOWER_FREQ:
-            if self._freqpos == 0:
+            if self._freqpos == 0: 
                 pass
-            else:
+            else: 
                 self._freqpos -= 1
-                freq = self._frequencies[ self._freqpos ]
-                self.set_frequency(freq)
 
-        # Measure new power consumption.
-        next_state = self.measure_power(f"Iter {self._count + 1}")
+        ### DO ACTION, WAIT AND MEASURE:
+        freq = self._frequencies[ self._freqpos ]
+        label = f"Iter {self._count + 1}"
+        next_state = self.set_wait_measure(freq, label)
 
         ### REWARDS:
         if action == self.RAISE_FREQ:
@@ -168,9 +169,10 @@ class CPUEnv01(gym.Env):
             self._done = True
 
         ### INFO AND STATE UPDATE:
-        self._info['delta'] = next_state - self._state[0]
-        self._info['power'] = next_state
+        self._info['delta']     = next_state - self._state[0]
+        self._info['power']     = next_state
         self._info['frequency'] = self._frequencies[ self._freqpos ]
+        
         self._state[0] = next_state
 
         ### RETURN:
@@ -187,7 +189,7 @@ class CPUEnv01(gym.Env):
 
     def seed(self, seed=None):
         ### Make random number generator from seed.
-        self._rng, seed = seeding.np_random(seed)
+        self.RNG, seed = seeding.np_random(seed)
 
         return [seed]
 
@@ -199,7 +201,8 @@ class CPUEnv01(gym.Env):
 
     def set_frequency(self, freq):
         ### Check if current frequency is above or below
-        if self._cpu.get_min_freq()[ self.CORES[0] ] < freq:
+        current_freq = self._cpu.get_min_freq()[ self.CORES[0] ]
+        if current_freq < freq:
             # Above
             self._cpu.set_max_frequencies(freq, self.CORES)
             self._cpu.set_min_frequencies(freq, self.CORES)
@@ -212,12 +215,23 @@ class CPUEnv01(gym.Env):
 
     def measure_power(self, label):
         meter = pyRAPL.Measurement(label=label)
+
         meter.begin()
-        time.sleep(self.TIME)
+        time.sleep(self.MEASURE_TIME)
         meter.end()
 
         m_energy = meter._results.pkg[self.SOCKET] # micro-J
-        m_time = meter._results.duration # micro-s
+        m_time   = meter._results.duration         # micro-s
+
         power = m_energy / m_time # watts
+
+        return power
+
+    def set_wait_measure(self, freq, label):
+        set_frequencies(freq)
+
+        time.sleep(self.SLEEP_TIME)
+
+        power = measure_power(label)
 
         return power
