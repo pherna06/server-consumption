@@ -43,8 +43,7 @@ class CPUEnv02(gym.Env):
 
         self.MINPOWER  = config.get('minpower', DEF_MINPOWER)
         self.MAXPOWER  = config.get('maxpower', DEF_MAXPOWER)
-        self.BANDWIDTH = self.MAXPOWER - self.MINPOWER
-        assert(self.BANDWIDTH > 0)
+        assert(self.MINPOWER < self.MAXPOWER)
 
         self.DECISION_TIME = config.get('decision_time', DEF_DECISION)
         self.MEASURE_TIME  = config.get('measure_time',  self.DECISION_TIME)
