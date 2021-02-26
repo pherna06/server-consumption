@@ -283,11 +283,11 @@ def get_parser():
         default=argparse.SUPPRESS
     )
 
-    powerpoints_help = "Number of power 'points', for which agents will be "
-    powerpoints_help += "trained and results measured, in which the power "
-    powerpoints_help += "bandwidth will be divided."
+    powernum_help = "Number of power 'points', for which agents will be "
+    powernum_help += "trained and results measured, in which the power "
+    powernum_help += "bandwidth will be divided."
     power.add_argument(
-        '--powpoints', metavar='powpoints', help=powerpoints_help,
+        '--pownum', metavar='pownum', help=powernum_help,
         nargs=1,
         type=int,
         default=argparse.SUPPRESS
@@ -443,10 +443,10 @@ def main():
         while ppoint <= DEF_MAXPOWER:
             powers.append(ppoint)
             ppoint += args.powstep
-    if 'powpoints' in args: # Extreme points not used
-        pstep = (DEF_MAXPOWER - DEF_MINPOWER) / (args.powpoints + 1)
+    if 'pownum' in args: # Extreme points not used
+        pstep = (DEF_MAXPOWER - DEF_MINPOWER) / (args.pownum + 1)
         ppoint = DEF_MINPOWER + pstep
-        for _ in range(args.powpoints):
+        for _ in range(args.pownum):
             powers.append(ppoint)
             ppoint += pstep
 

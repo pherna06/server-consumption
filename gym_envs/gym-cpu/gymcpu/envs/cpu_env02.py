@@ -18,8 +18,8 @@ class CPUEnv02(gym.Env):
     DEF_MAXSTEPS = 20
     DEF_SEED     = None
     
-    DEF_MINPOWER = 15.0 - 5.0
-    DEF_MAXPOWER = 115.0 + 5.0
+    DEF_MINPOWER = 15.0
+    DEF_MAXPOWER = 115.0
 
     DEF_POWERSTEP = 2.0 
 
@@ -51,8 +51,8 @@ class CPUEnv02(gym.Env):
         self.SLEEP_TIME    = self.DECISION_TIME - self.MEASURE_TIME
         assert(self.SLEEP_TIME >= 0)
 
-        self.POWERSTEP = powstep
-        self.INTERVALS = ceil( (self.BANDWIDTH) / self.POWERSTEP )
+        self.POWERPOINTS = get_powerpoints(**config)
+        self.INTERVALS = len(self.POWERPOINTS) + 1
 
         ### Default metadata.
         self.metadata = { 'render.modes': ['human'] }
@@ -98,7 +98,7 @@ class CPUEnv02(gym.Env):
         #   _goal: interval of self.LIMIT
         self._power = 0.0
         self._state = 0
-        self._goal  = ceil((self.LIMIT - self.MINPOWER) / self.POWERSTEP)
+        self._goal  = get_state(self.LIMIT)
         
         ### CPUEnv: random number generator.
         #   RNG random number generator
@@ -222,15 +222,31 @@ class CPUEnv02(gym.Env):
 
     ### AUXILIARY METHODS
 
-    def get_state(self, power):
-        if power < self.MINPOWER:
-            return 1
-        if self.MAXPOWER < power:
-            return self.INTERVALS - 1
-        
-        abspow = power - self.MINPOWER
+    def get_powerpoints(self, **config):
+        powers = []
+        if 'powpoints' in config:
+            powers = sorted(config['powpoints'])
+        elif 'pownum' in config:
+            num = config['pownum']
+            pstep = (self.MAXPOWER - self.MINPOWER) / (num + 1)
+            ppoint = self.MINPOWER
+            for _ in range(num + 2):
+                powers.append(ppoint)
+                ppoint += pstep
+        else:
+            pstep = config.get('powstep', DEF_POWERSTEP)
+            ppoint = self.MINPOWER
+            powers.append(ppoint)
+            while ppoint < self.MAXPOWER:
+                ppoint += pstep
+                powers.append(ppoint)
 
-        return ceil(abspow / self.POWERSTEP)
+        return powers
+
+    def get_state(self, power):
+        pos = np.searchsorted(self.POWERPOINTS, power, side='right')
+
+        return pos + 1
 
     def set_frequency(self, freq):
         ### Check if current frequency is above or below
