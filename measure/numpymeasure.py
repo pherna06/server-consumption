@@ -218,7 +218,7 @@ def time_logs(workstr, time_results, logpath):
             Name of the operation, used for log files naming.
         time_results : dict
             Dictionary with execution times for frequency and core.
-            > time = time_results[freq][core]
+            > time = time_results[core][freq]
         logpath : str
             Path of folder where log files will be generated.
     """
@@ -226,48 +226,68 @@ def time_logs(workstr, time_results, logpath):
     time_logpath = logpath + workstr + '.time.log'
     time_csvpath = logpath + workstr + '.time.csv'
 
-    # Removal of previous log files.
-    if os.path.exists(time_logpath):
-        os.remove(time_logpath)
-    if os.path.exists(time_csvpath):
-        os.remove(time_csvpath)
+    time_csv(time_results, time_csvpath)
+    time_log(time_results, time_logpath)
 
-    # Writing log results.
-    time_logf = open(time_logpath, 'w')
-    time_csvf = open(time_csvpath, 'w')
+def time_csv(results, csvpath):
+    cores = sorted(results.keys())
+    freqs = results[-1].keys()
+    
+    # Create or overwrite.
+    if os.path.exists(csvpath):
+        os.remove(csvpath)
+    csvf = open(csvpath, 'w')
 
-    for freq in time_results:
-        logfreq = freq
+    # Header.
+    csvf.write("Frequency,")
+    for core in cores:
+        csvf.write(f"{core},")
+    csvf.write("\b\n")
+
+    # Results.
+    for freq in freqs:
+        csvf.write(f"{freq},")
+        for core in cores:
+            csvf.write(f"{results[core][freq]},")
+        csvf.write("\b\n")
+
+    csvf.close()
+
+def time_log(results, logpath):
+    cores = sorted(results.keys())
+    freqs = results[-1].keys()
+
+    # Create or overwrite.
+    if os.path.exists(logpath):
+        os.remove(logpath)
+    logf = open(logpath, 'w')
+
+    # Results
+    for freq in freqs:
         if freq == NOMINAL_MAXFREQ:
-            logfreq = REAL_MAXFREQ
+            logfreq = "MAX"
+        else:
+            logfreq = freq // 1000 # MHz
 
-        freqmhz = int(logfreq/1000)
-        
-        time_csvf.write(f"{logfreq}\n")
-        
-        time_logf.write(f"Frequency: {freqmhz} MHz\n")
-        time_logf.write("-------------------------\n") # 25-
-        time_logf.write("CPU   Time (ms)\n")
+        logf.write(f"Frequency (MHz): {logfreq}\n")
+        logf.write("-------------------------\n") # 25-
+        logf.write("CPU   Time (ms)\n")
 
-        for core in sorted(time_results[freq]):
+        for core in cores:
             if core == -1:
                 continue
-            timems = time_results[freq][core]
-            time_csvf.write(f"{core}, {timems}\n")
-            time_logf.write(f"{core:<3}   {timems:.3f}\n")
+            timems = time_results[core][freq]
+            logf.write(f"{core:<3}   {timems:.3f}\n")
 
-        time_mean = time_results[freq][-1]
+        mean = time_results[-1][freq]
 
-        time_csvf.write(f"-1, {time_mean}\n")
+        logf.write("-------------------------\n") # 25-
+        logf.write(f"Mean: {mean:.3f} ms\n")
 
-        time_logf.write("-------------------------\n") # 25-
-        time_logf.write(f"Mean: {time_mean:.3f} ms\n")
+        logf.write("##########################\n\n") # 25#
 
-        time_logf.write("##########################\n\n") # 25#
-
-    time_logf.close()
-    time_csvf.close()
-
+    logf.close()
+    
 
 def power_logs(workstr, power_results, logpath):
     """
@@ -280,7 +300,7 @@ def power_logs(workstr, power_results, logpath):
             Name of the operation, used for log files naming.
         power_results : dict
             Dictionary with energy consumption for frequency and core.
-            > power = power_results[freq][core]
+            > power = power_results[skt][freq]
         logpath : str
             Path of folder where log files will be generated.
     """
@@ -288,47 +308,67 @@ def power_logs(workstr, power_results, logpath):
     power_logpath = logpath + workstr + '.power.log'
     power_csvpath = logpath + workstr + '.power.csv'
 
-    # Removal of previous log files.
-    if os.path.exists(power_logpath):
-        os.remove(power_logpath)
-    if os.path.exists(power_csvpath):
-        os.remove(power_csvpath)
+    power_csv(power_results, power_csvpath)
+    power_log(power_results, power_logpath)
 
-    # Writing log results.
-    power_logf = open(power_logpath, 'w')
-    power_csvf = open(power_csvpath, 'w')
+def power_csv(results, csvpath):
+    sockets = sorted(results.keys())
+    freqs = results[-1].keys()
+    
+    # Create or overwrite.
+    if os.path.exists(csvpath):
+        os.remove(csvpath)
+    csvf = open(csvpath, 'w')
 
-    for freq in power_results:
-        logfreq = freq
+    # Header.
+    csvf.write("Frequency,")
+    for skt in sockets:
+        csvf.write(f"{skt},")
+    csvf.write("\b\n")
+
+    # Results.
+    for freq in freqs:
+        csvf.write(f"{freq},")
+        for skt in sockets:
+            csvf.write(f"{results[skt][freq]},")
+        csvf.write("\b\n")
+
+    csvf.close()
+
+def power_log(results, logpath):
+    sockets = sorted(results.keys())
+    freqs = results[-1].keys()
+
+    # Create or overwrite.
+    if os.path.exists(logpath):
+        os.remove(logpath)
+    logf = open(logpath, 'w')
+
+    # Results
+    for freq in freqs:
         if freq == NOMINAL_MAXFREQ:
-            logfreq = REAL_MAXFREQ
+            logfreq = "MAX"
+        else:
+            logfreq = freq // 1000 # MHz
 
-        freqmhz = int(logfreq/1000)
-        
-        power_csvf.write(f"{logfreq}\n")
-        
-        power_logf.write(f"Frequency: {freqmhz} MHz\n")
-        power_logf.write("-------------------------\n") # 25-
-        power_logf.write("Socket   Power (w)\n")
+        logf.write(f"Frequency (MHz): {logfreq}\n")
+        logf.write("-------------------------\n") # 25-
+        logf.write("Socket   Power (w)\n")
 
-        for skt in sorted(power_results[freq]):
+        for skt in sockets:
             if skt == -1:
                 continue
-            power = power_results[freq][skt]
-            power_csvf.write(f"{skt}, {power}\n")
-            power_logf.write(f"{skt:<6}   {power:.3f}\n")
+            power = time_results[skt][freq]
+            logf.write(f"{skt:<6}   {power:.3f}\n")
 
-        power_mean = power_results[freq][-1]
+        mean = time_results[-1][freq]
 
-        power_csvf.write(f"-1, {power_mean}\n")
-        
-        power_logf.write("-------------------------\n")# 25-
-        power_logf.write(f"Mean: {power_mean:.3f} w\n")
+        logf.write("-------------------------\n") # 25-
+        logf.write(f"Mean: {mean:.3f} ms\n")
 
-        power_logf.write("#########################\n\n") # 25#
-    
-    power_logf.close()
-    power_csvf.close()
+        logf.write("##########################\n\n") # 25#
+
+    logf.close()
 
 
 ###################
@@ -367,6 +407,9 @@ def time_measure(work, freqs, cores, size, rep, log):
 
     # Dict to store results
     time_results = {}
+    time_results[-1] = {}
+    for core in cores:
+        time_results[core] = {}
 
     # Shared temporal file and lock:
     timepath = 'time.temp'
@@ -405,20 +448,19 @@ def time_measure(work, freqs, cores, size, rep, log):
         wf.close()
         
         time_sum = 0.0
-        time_results[freq] = {}
         for line in wflines:
             corestr, worktimestr = line.split()
             core = int(corestr)
             worktime = float(worktimestr)
 
-            time_results[freq][core] = worktime
+            time_results[core][freq] = worktime
             time_sum += worktime
 
         # Time mean.
         count = len(wflines)
-        time_results[freq][-1] = time_sum / count
+        time_results[-1][freq] = time_sum / count
 
-        print(f"Mean execution time: {time_results[freq][-1]:.3f} ms")
+        print(f"Mean execution time: {time_results[-1][freq]:.3f} ms")
 
     os.remove(timepath)
     os.remove(lockpath)
@@ -461,6 +503,9 @@ def power_measure(work, freqs, sockets, size, powertime, log):
 
     # Dict to store results
     power_results = {}
+    power_results[-1] = {}
+    for skt in sockets:
+        power_results[skt] = {}
 
     # Measure execution time for each frequency in each implied core.
     freqs = sorted(freqs)
@@ -478,18 +523,20 @@ def power_measure(work, freqs, sockets, size, powertime, log):
                 exit(0)
 
         # Measure.
-        power_results[freq] = rapl_power(work, powertime, sockets)
+        freqpower = rapl_power(work, powertime, sockets)
+        for skt in freqpower:
+            power_results[skt][freq] = freqpower[skt]
 
         # Wait for all forked processes
         for pid in pidls:
             os.kill(pid, signal.SIGKILL)
 
         # Time mean.
-        count = len(power_results[freq])
-        power_sum = sum(power_results[freq].values())
-        power_results[freq][-1] = power_sum / count
+        count = len(freqpower)
+        power_sum = sum(freqpower.values())
+        power_results[-1][freq] = power_sum / count
 
-        print(f"Mean execution power: {power_results[freq][-1]:.3f} w")
+        print(f"Mean execution power: {power_results[-1][freq]:.3f} w")
 
     # Writing log files
     if log is not None:
