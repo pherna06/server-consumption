@@ -680,8 +680,8 @@ def main():
 
     # Gets closest frequencies to the selected ones.
     freqs = []
-    if 'freq' in args:
-        userfs = args.freq
+    if 'freqs' in args:
+        userfs = args.freqs
         for freq in userfs:
             freqs.append( closest_frequency(freq * 1000) )
     else:
