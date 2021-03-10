@@ -62,6 +62,13 @@ REAL_MAXFREQ = 3000000
 DEF_MINPOWER = 15.0
 DEF_MAXPOWER = 115.0
 
+
+
+
+
+
+
+
 #####################
 # UTILITY FUNCTIONS #
 #####################
@@ -132,6 +139,12 @@ def get_powerpoints(args):
 
 #########################
 #######################
+
+
+
+
+
+
 
 def set_workload(work, config):
     size = config['size']
@@ -246,7 +259,7 @@ def learn_and_measure(
     results = {}
     for powerpoint in powers:
         # AGENT
-        if agentconfig = None:
+        if agentconfig is None:
             config = ppo.DEFAULT_CONFIG.copy()
             
             config["log_level"]   = "WARN"
@@ -294,6 +307,11 @@ def learn_and_measure(
     ## RESULTS
     if 'log' in fileconfig:
         generate_logfiles(results, fileconfig['log'])
+
+
+
+
+        
     
 
 #########################
@@ -308,7 +326,7 @@ def get_parser():
     envconfig_help = "Dict of values for the configuration of the environment "
     envconfig_help += "in which the agent will be trained."
     parser.add_argument(
-        '-e', '--envconfig'. metavar='envconfig', help=envconfig_help,
+        '-e', '--envconfig', metavar='envconfig', help=envconfig_help,
         type=json.loads,
         default=DEF_ENVCONFIG
     )
