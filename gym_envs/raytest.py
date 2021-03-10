@@ -45,7 +45,7 @@ DEF_WORKCONFIG = {
 
 # DEFAULT TEST CONFIGURATION
 DEF_TESTCONFIG = {
-    'logpath':   'tests/default/checkpoint-5'
+    'logpath':   'tests/default/checkpoint-5',
     'iter' :     10,
     'verbose':   True
 }
@@ -549,9 +549,9 @@ def get_parser():
     ## TEST CONFIGURATION
     testconfig_help = "Dict of values for the configuration of agent testing."
     parser.add_argument(
-        '-t', '--trainconfig', metavar='trainconfig', help=trainconfig_help,
+        '-x', '--testconfig', metavar='testconfig', help=testconfig_help,
         type=json.loads,
-        default=DEF_TRAINCONFIG
+        default=DEF_TESTCONFIG
     )
 
     ## PROCESS AFFINITY
@@ -587,7 +587,7 @@ def main():
 
     ## TEST
     test(
-        agentpath  = args.model
+        agentpath  = args.model,
         env        = args.env,
         envconfig  = args.envconfig,
         work       = args.work, 

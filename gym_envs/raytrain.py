@@ -6,10 +6,6 @@ from   gymcpu.envs.cpu_env02 import CPUEnv02
 
 import numpypower as npp
 
-import ray
-import ray.rllib.agents.ppo as ppo
-from   ray.tune.registry import register_env
-
 import argparse
 import json
 
@@ -271,6 +267,10 @@ def train(env, envconfig, work, workconfig, agentconfig, trainconfig):
         trainconfig : dict
             Configuration of the training process.
     """
+    import ray
+    import ray.rllib.agents.ppo as ppo
+    import ray.tune.registry.register_env
+
     ## REGISTER ENVIRONMENT
     Env = ENVIRONMENTS[env]
     register_env(env, lambda config: Env(**config))

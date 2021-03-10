@@ -1,6 +1,3 @@
-import raytrain
-import raytest
-
 import argparse
 import pyRAPL
 import os
@@ -38,7 +35,7 @@ DEF_TRAINCONFIG = {
 
 # DEFAULT TEST CONFIGURATION
 DEF_TESTCONFIG = {
-    'logpath':   'tests/default'
+    'logpath':   'tests/default',
     'iter' :     10,
     'verbose':   True
 }
@@ -160,7 +157,8 @@ def generate_csv(results, path):
             mean  += freq * freqc
             count += freqc
 
-            mode  = freq if freqc > maxc
+            if freqc > maxc:
+                 mode = freq
 
         mean /= count
 
@@ -213,6 +211,9 @@ def train_and_test(
         testconfig : dict
             Configuration of the test process.
     """
+    from raytrain import train
+    from raytest import test
+
     ## GENERAL PATHS
     trainpath = trainconfig['chkptpath']
     testpath  = testconfig['logpath']
@@ -225,7 +226,7 @@ def train_and_test(
         trainconfig['chkptpath'] = trainpath + f"/powerpoint-{i + 1}"
 
         ## TRAIN
-        raytrain.train(
+        train(
             env, envconfig,
             work, workconfig,
             agentconfig, trainconfig
@@ -239,7 +240,7 @@ def train_and_test(
         testconfig['logpath'] = testpath + f"/powerpoint-{i + 1}"
 
         ## TEST
-        count, _ = raytest.test(
+        count, _ = test(
             agentpath,
             env, envconfig,
             work, workconfig,
@@ -314,9 +315,9 @@ def get_parser():
     ## TEST CONFIGURATION
     testconfig_help = "Dict of values for the configuration of agent testing."
     parser.add_argument(
-        '-t', '--trainconfig', metavar='trainconfig', help=trainconfig_help,
+        '-x', '--testconfig', metavar='testconfig', help=testconfig_help,
         type=json.loads,
-        default=DEF_TRAINCONFIG
+        default=DEF_TESTCONFIG
     )
 
     ## POWERSTEPS
