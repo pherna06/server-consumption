@@ -21,17 +21,15 @@ ENVIRONMENTS = {
 }
 
 # CPU DEFAULT SOCKET-CORES CONFIGURATION
-CORES_LIST = list(range(16))
-SOCKET_LIST = [0, 1]
-SOCKET_DICT = {
-        0: CORES_LIST[0:8], 
-        1: CORES_LIST[8:16]
+DEF_CPUCONFIG = {
+    '0': [0,1,2,3,4,5,6,7],
+    '1': [8,9,10,11,12,13,14,15]
 }
 
 # DEFAULT GYM ENVIRONMENT CONFIGURATION
 DEF_ENVCONFIG = {
     'socket' : 1,
-    'cores'  : SOCKET_DICT[1]
+    'cores'  : DEF_CPUCONFIG['1']
 }
 
 # DEFAULT WORKLOAD CONFIGURATION
@@ -55,7 +53,7 @@ DEF_TRAINCONFIG = {
 ### UTILITY FUNCTIONS ###
 #########################
 
-def get_cores(sockets):
+def get_cores(sockets, config):
     """
         Retrieves the cores associated to the given socket IDs.
 
@@ -63,6 +61,8 @@ def get_cores(sockets):
         ----------
         sockets : list
             The specified socket numbers.
+        config : dict(str, list)
+            List with the cores assigned to each socket.
         
         Returns
         -------
@@ -71,7 +71,7 @@ def get_cores(sockets):
     """
     cores = []
     for skt in sockets:
-        cores.extend(SOCKET_DICT[skt])
+        cores.extend(config[str(skt)])
 
     return cores
 
@@ -347,6 +347,14 @@ def get_parser():
         default=DEF_TRAINCONFIG
     )
 
+    ## CPU CONFIGURATION
+    cpuconfig_help = "Dict of socket-cores CPU relation."
+    parser.add_argument(
+        '-c', '--cpuconfig', metavar='cpuconfig', help=cpuconfig_help,
+        type=json.loads,
+        default=DEF_CPUCONFIG
+    )
+
     ## PROCESS AFFINITY
     affinity = parser.add_mutually_exclusive_group()
 
@@ -376,6 +384,7 @@ def main():
     if 'affcores' in args:
         os.sched_setaffinity(0, args.affcores)
     elif 'affsockets' in args:
+        cores = get_cores(args.affsockets, args.cpuconfig)
         os.sched_setaffinity(0, get_cores(args.affsockets))
 
     ## TRAIN
