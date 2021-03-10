@@ -53,6 +53,10 @@ DEF_TRAINCONFIG = {
 ### UTILITY FUNCTIONS ###
 #########################
 
+def read_json(jsonpath):
+    with open(jsonpath) as jsonf:
+        return json.load(jsonf)
+
 def get_cores(sockets, config):
     """
         Retrieves the cores associated to the given socket IDs.
@@ -189,6 +193,8 @@ def set_PPOagent(env, envconfig, agentconfig):
         agent : PPOTrainer
             The generated agent.
     """
+    import ray.rllib.agents.ppo as ppo
+
     config = agentconfig
     if config is None:
         config = ppo.DEFAULT_CONFIG.copy()
@@ -268,8 +274,7 @@ def train(env, envconfig, work, workconfig, agentconfig, trainconfig):
             Configuration of the training process.
     """
     import ray
-    import ray.rllib.agents.ppo as ppo
-    import ray.tune.registry.register_env
+    from  ray.tune.registry import register_env
 
     ## REGISTER ENVIRONMENT
     Env = ENVIRONMENTS[env]
@@ -313,7 +318,7 @@ def get_parser():
     envconfig_help += "in which the agent will be trained."
     parser.add_argument(
         '-e', '--envconfig', metavar='envconfig', help=envconfig_help,
-        type=json.loads,
+        type=read_json,
         default=DEF_ENVCONFIG
     )
 
@@ -327,7 +332,7 @@ def get_parser():
     workconfig_help += "worload."
     parser.add_argument(
         '-w', '--workconfig', metavar='workconfig', help=workconfig_help, 
-        type=json.loads, 
+        type=read_json, 
         default=DEF_WORKCONFIG
     )
 
@@ -335,7 +340,7 @@ def get_parser():
     agentconfig_help = "Dict of values for the configuration of the Ray agent."
     parser.add_argument(
         '-a', '--agentconfig', metavar='agentconfig', help=agentconfig_help,
-        type=json.loads,
+        type=read_json,
         default=None
     )
 
@@ -343,7 +348,7 @@ def get_parser():
     trainconfig_help = "Dict of values for the configuration of agent train."
     parser.add_argument(
         '-t', '--trainconfig', metavar='trainconfig', help=trainconfig_help,
-        type=json.loads,
+        type=read_json,
         default=DEF_TRAINCONFIG
     )
 
@@ -351,7 +356,7 @@ def get_parser():
     cpuconfig_help = "Dict of socket-cores CPU relation."
     parser.add_argument(
         '-c', '--cpuconfig', metavar='cpuconfig', help=cpuconfig_help,
-        type=json.loads,
+        type=read_json,
         default=DEF_CPUCONFIG
     )
 
@@ -393,7 +398,8 @@ def main():
         envconfig   = args.envconfig,
         work        = args.work,
         workconfig  = args.workconfig,
-        agentconfig = args.agentconfig
+        agentconfig = args.agentconfig,
+        trainconfig = args.trainconfig
     )
 
 

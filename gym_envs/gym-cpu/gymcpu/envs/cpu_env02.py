@@ -33,24 +33,24 @@ class CPUEnv02(gym.Env):
         #   MAXSTEPS maximum iterations for environment
         #   TIME time spent in each rapl measurement
         #   POWERSTEP size of intervals of observation space
-        self.LIMIT  = config.get('power',  DEF_POWERLIMIT)
+        self.LIMIT  = config.get('power',  self.DEF_POWERLIMIT)
 
-        self.SOCKET = config.get('socket', DEF_SOCKET)
-        self.CORES  = config.get('cores',  DEF_CORES)
+        self.SOCKET = config.get('socket', self.DEF_SOCKET)
+        self.CORES  = config.get('cores',  self.DEF_CORES)
 
-        self.MAXSTEPS = config.get('maxsteps', DEF_MAXSTEPS)
-        self.SEED     = config.get('seed',     DEF_SEED)
+        self.MAXSTEPS = config.get('maxsteps', self.DEF_MAXSTEPS)
+        self.SEED     = config.get('seed',     self.DEF_SEED)
 
-        self.MINPOWER  = config.get('minpower', DEF_MINPOWER)
-        self.MAXPOWER  = config.get('maxpower', DEF_MAXPOWER)
+        self.MINPOWER  = config.get('minpower', self.DEF_MINPOWER)
+        self.MAXPOWER  = config.get('maxpower', self.DEF_MAXPOWER)
         assert(self.MINPOWER < self.MAXPOWER)
 
-        self.DECISION_TIME = config.get('decision_time', DEF_DECISION)
+        self.DECISION_TIME = config.get('decision_time', self.DEF_DECISION)
         self.MEASURE_TIME  = config.get('measure_time',  self.DECISION_TIME)
         self.SLEEP_TIME    = self.DECISION_TIME - self.MEASURE_TIME
         assert(self.SLEEP_TIME >= 0)
 
-        self.POWERPOINTS = get_powerpoints(**config)
+        self.POWERPOINTS = self.get_powerpoints(**config)
         self.INTERVALS = len(self.POWERPOINTS) + 1
 
         ### Default metadata.
@@ -65,7 +65,7 @@ class CPUEnv02(gym.Env):
         self._freqpos = -1
 
         # Set used cores to 'userspace' scheme for frequency modification.
-        self._cpu.set_governors('userspace', cores)
+        self._cpu.set_governors('userspace', self.CORES)
 
         ### Action space.
         #   0: lower frequency
@@ -97,7 +97,7 @@ class CPUEnv02(gym.Env):
         #   _goal: interval of self.LIMIT
         self._power = 0.0
         self._state = 0
-        self._goal  = get_state(self.LIMIT)
+        self._goal  = self.get_state(self.LIMIT)
         
         ### CPUEnv: random number generator.
         #   RNG random number generator
@@ -190,9 +190,9 @@ class CPUEnv02(gym.Env):
         self._info['power']     = next_power
         self._info['frequency'] = self._frequencies[ self._freqpos ]
 
-        lowpow = (next_state - 1) * self.POWERSTEP
-        self._info['lower_bound']  = self.MINPOWER + lowpow
-        self._info['higher_bound'] = self._info['lower_bound'] + self.POWERSTEP
+        #lowpow = (next_state - 1) * self.POWERSTEP
+        #self._info['lower_bound']  = self.MINPOWER + lowpow
+        #self._info['higher_bound'] = self._info['lower_bound'] + self.POWERSTEP
 
         self._power = next_power
         self._state = next_state
@@ -237,7 +237,7 @@ class CPUEnv02(gym.Env):
                 powers.append(ppoint)
                 ppoint += pstep
         else:
-            pstep = config.get('powstep', DEF_POWERSTEP)
+            pstep = config.get('powstep', self.DEF_POWERSTEP)
             ppoint = self.MINPOWER
             powers.append(ppoint)
             while ppoint < self.MAXPOWER:
@@ -280,10 +280,10 @@ class CPUEnv02(gym.Env):
         return power
 
     def set_wait_measure(self, freq, label):
-        set_frequencies(freq)
+        self.set_frequency(freq)
 
         time.sleep(self.SLEEP_TIME)
 
-        power = measure_power(label)
+        power = self.measure_power(label)
 
         return power
