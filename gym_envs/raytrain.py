@@ -38,6 +38,12 @@ DEF_ENVCONFIG = {
     'cores'  : SOCKET_DICT[1]
 }
 
+# DEFAULT WORKLOAD CONFIGURATION
+DEF_WORKCONFIG = {
+    'size'   : 1000,
+    'groups' : [[core] for core in DEF_ENVCONFIG['cores']]
+}
+
 # DEFAULT TRAINING CONFIGURATION
 DEF_TRAINCONFIG = {
     'epochs'    : 5,

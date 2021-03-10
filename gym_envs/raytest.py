@@ -45,7 +45,7 @@ DEF_WORKCONFIG = {
 
 # DEFAULT TEST CONFIGURATION
 DEF_TESTCONFIG = {
-    'logpath':   'tests/default/checkpoint-5/'
+    'logpath':   'tests/default/checkpoint-5'
     'iter' :     10,
     'verbose':   True
 }
@@ -77,6 +77,24 @@ def get_cores(sockets):
         cores.extend(SOCKET_DICT[skt])
 
     return cores
+
+def standardize_results(results, freqs):
+    """
+        Translates the frequency range of the results to the indicated
+        frequencies, adding missing ones with count 0.
+
+        Parameters
+        ----------
+        results : dict(int, int)
+            Results of test, storing the frequency count of iterations.
+        freqs : list(int)
+            List of frequencies in new results dict.
+    """
+    stdresults = {}
+    for freq in freqs:
+        stdresults[freq] = results.get(freq, 0)
+
+    return stdresults
 
 #########################
 # --------------------- #
@@ -190,8 +208,8 @@ def generate_log(results, history, path):
             Path where files will be created (overwritten if necessary)
         
     """
-    respath  = path + 'results.csv'
-    histpath = path + 'test.log'
+    respath  = path + '/results.csv'
+    histpath = path + '/test.log'
 
     ## RESULTS CSV
     results_csv(results, respath)
@@ -288,7 +306,7 @@ def display_status(label, status):
 
     input("Press enter to continue...")
 
-def display_results(results, freqs):
+def display_results(results):
     """
         Displays, in standard output, the final results of the test of an
         agent, that is, the frequency count.
@@ -304,8 +322,8 @@ def display_results(results, freqs):
     print("Results")
     print("-------------------------")
     print("Frequency (MHz)   Count\n")
-    for freq in freqs:
-        count = results.get(freq, 0)
+    for freq in results:
+        count = results[freq]
         print(f"{freq//1000:<15}   {count:<5}   |")
         [printf(".", end='') for _ in range(count)]
         print("")
@@ -353,7 +371,7 @@ def get_PPOagent(env, envconfig, agentpath):
 def test_env(env, envconfig, agent, iterations, verbose):
     """
         Test of a GYM environment with an agent deciding on actions based
-        on environment state. The test is repetead for the indicated 
+        on environment state. The test is repeated for the indicated 
         iterations. Status of environment in each step is displayed if
         verbose activated. Test results (frequency count) and status
         history are returned.
@@ -415,8 +433,11 @@ def test_env(env, envconfig, agent, iterations, verbose):
         freq = info['frequency']
         results[freq] = results.get(freq, 0) + 1
 
+    # STANDARDIZE RESULTS TO AVAILABLE FREQS
+    standardize_results(results, cpuenv._frequencies)
+
     # DISPLAY FREQUENCY COUNT RESULTS
-    display_results(results, cpuenv._frequencies)
+    display_results(results)
 
     return results, history
 
