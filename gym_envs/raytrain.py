@@ -390,7 +390,7 @@ def main():
         os.sched_setaffinity(0, args.affcores)
     elif 'affsockets' in args:
         cores = get_cores(args.affsockets, args.cpuconfig)
-        os.sched_setaffinity(0, get_cores(args.affsockets))
+        os.sched_setaffinity(0, cores)
 
     ## TRAIN
     train(
