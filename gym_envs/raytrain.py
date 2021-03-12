@@ -23,8 +23,8 @@ import shutil
 
 DEF_CONFIG = {
     # POSITIONAL ARGUMENTS
-    'env'  : '',
-    'work' : '',
+    'env'  : None,
+    'work' : None,
     # GYM CUSTOM ENVIRONMENTS
     'gymenvs' : {
         'CPUEnv00-v0' : CPUEnv00,
@@ -46,6 +46,8 @@ DEF_CONFIG = {
         'size'   : 1000,
         'groups' : [[core] for core in [8,9,10,11,12,13,14,15]]
     },
+    # DEFAULT AGENT CONFIGURATION
+    'agentconfig' : None,
     # DEFAULT TRAINING CONFIGURATION
     'trainconfig' : {
         'epochs'    : 5,
@@ -77,11 +79,13 @@ def load_config(args):
         if field in args:
             config[field] = argsdict[field]
 
+    return config
+
 def save_config(env, work, config):
     config['env']  = env
     config['work'] = work
 
-    with open(config['chkptpath']) as jsonf:
+    with open(config['chkptpath'] + '/config.json') as jsonf:
         json.dump(config, jsonf)
 
 #########################
@@ -439,11 +443,11 @@ def main():
 
     # SET POSITIONAL ARGS
     env = config['env']
-    if env is '':
+    if env is None:
         env = args.env
 
     work = config['work']
-    if work is '':
+    if work is None:
         work = args.work
 
     # SET TRAINING PROCESS AFFINITY
