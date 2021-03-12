@@ -23,8 +23,8 @@ import shutil
 
 DEF_CONFIG = {
     # POSITIONAL ARGUMENTS
-    'env'  : None,
-    'work' : None,
+    'env'  : '',
+    'work' : '',
     # GYM CUSTOM ENVIRONMENTS
     'gymenvs' : {
         'CPUEnv00-v0' : CPUEnv00,
@@ -41,7 +41,7 @@ DEF_CONFIG = {
         'socket' : 1,
         'cores'  : [8,9,10,11,12,13,14,15]
     },
-    # DEFAULT WORKLOAD CONFIGURATION
+    # DEFAULT WORKLOAD CONFIGURATIONgit 
     'workconfig' : {
         'size'   : 1000,
         'groups' : [[core] for core in [8,9,10,11,12,13,14,15]]
@@ -439,11 +439,11 @@ def main():
 
     # SET POSITIONAL ARGS
     env = config['env']
-    if env is None:
+    if env is '':
         env = args.env
 
     work = config['work']
-    if work is None:
+    if work is '':
         work = args.work
 
     # SET TRAINING PROCESS AFFINITY
