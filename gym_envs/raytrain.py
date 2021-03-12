@@ -22,6 +22,9 @@ import shutil
 #########################
 
 DEF_CONFIG = {
+    # POSITIONAL ARGUMENTS
+    'env'  : '',
+    'work' : '',
     # GYM CUSTOM ENVIRONMENTS
     'gymenvs' : {
         'CPUEnv00-v0' : CPUEnv00,
@@ -312,6 +315,9 @@ def train(env, work, config):
 
     ## BACKGROUND WORKLOAD KILL
     end_work(workers)
+
+    # SAVE TRAINING CONFIGURATION
+    save_config(env, work, config)
     
 #########################
 # --------------------- #
@@ -416,18 +422,28 @@ def main():
     # SET CONFIGURATION
     config = load_config(args)
 
+    # SET POSITIONAL ARGS
+    env = args.env
+    if env == 'defenv':
+        env = config['env']
+    
+    work = args.work
+    if work == 'defwork':
+        work = config['work']
+
+
     # SET TRAINING PROCESS AFFINITY
     if 'affcores' in args:
         os.sched_setaffinity(0, args.affcores)
     elif 'affsockets' in args:
-        cores = get_cores(args.affsockets, args.cpuconfig)
+        cores = get_cores(args.affsockets, config['cpuconfig'])
         os.sched_setaffinity(0, cores)
 
     ## TRAIN
     train(
-        env         = args.env, 
-        work        = args.work,
-        config      = config
+        env    = env, 
+        work   = work,
+        config = config
     )
 
 
