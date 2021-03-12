@@ -23,8 +23,8 @@ import shutil
 
 DEF_CONFIG = {
     # POSITIONAL ARGUMENTS
-    'env'  : '',
-    'work' : '',
+    'env'  : None,
+    'work' : None,
     # GYM CUSTOM ENVIRONMENTS
     'gymenvs' : {
         'CPUEnv00-v0' : CPUEnv00,
@@ -54,6 +54,14 @@ DEF_CONFIG = {
     }
 }
 
+PARTICULAR_CONFIGS = [
+    'gymenvs',
+    'cpuconfig',
+    'envconfig',
+    'workconfig',
+    'trainconfig'
+]
+
 def load_config(args):
     # DEFAULT CONFIG LOADED FIRST
     config = DEF_CONFIG
@@ -65,7 +73,7 @@ def load_config(args):
     
     # FIELDS MODIFIED WITH THOSE OF PARTICULAR CONFIGS
     argsdict = vars(args)
-    for field in config:
+    for field in PARTICULAR_CONFIGS:
         if field in args:
             config[field] = argsdict[field]
 
@@ -430,14 +438,13 @@ def main():
     config = load_config(args)
 
     # SET POSITIONAL ARGS
-    env = args.env
-    if env == 'defenv':
-        env = config['env']
-    
-    work = args.work
-    if work == 'defwork':
-        work = config['work']
+    env = config['env']
+    if env is None:
+        env = args.env
 
+    work = config['work']
+    if work is None:
+        work = args.work
 
     # SET TRAINING PROCESS AFFINITY
     if 'affcores' in args:
