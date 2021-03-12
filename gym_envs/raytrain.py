@@ -13,41 +13,66 @@ import os
 import signal
 import shutil
 
-# GYM CUSTOM ENVIRONMENTS
-ENVIRONMENTS = {
-    'CPUEnv00-v0':      CPUEnv00,
-    'CPUEnv01-v0':      CPUEnv01,
-    'CPUEnv02-v0':      CPUEnv02
+
+
+
+
+#########################
+##### CONFIGURATION #####
+#########################
+
+DEF_CONFIG = {
+    # GYM CUSTOM ENVIRONMENTS
+    'gymenvs' : {
+        'CPUEnv00-v0' : CPUEnv00,
+        'CPUEnv01-v0' : CPUEnv01,
+        'CPUEnv02-v0' : CPUEnv02
+    },
+    # CPU DEFAULT SOCKET-CORES CONFIGURATION
+    'cpuconfig' : {
+        '0' : [0,1,2,3,4,5,6,7],
+        '1' : [8,9,10,11,12,13,14,15]
+    },
+    # DEFAULT GYM ENVIRONMENT CONFIGURATION
+    'envconfig' : {
+        'socket' : 1,
+        'cores'  : [8,9,10,11,12,13,14,15]
+    },
+    # DEFAULT WORKLOAD CONFIGURATION
+    'workconfig' : {
+        'size'   : 1000,
+        'groups' : [[core] for core in [8,9,10,11,12,13,14,15]]
+    },
+    # DEFAULT TRAINING CONFIGURATION
+    'trainconfig' : {
+        'epochs'    : 5,
+        'chkptpath' : 'trained_agents/default',
+        'verbose'   : True
+    }
 }
 
-# CPU DEFAULT SOCKET-CORES CONFIGURATION
-DEF_CPUCONFIG = {
-    '0': [0,1,2,3,4,5,6,7],
-    '1': [8,9,10,11,12,13,14,15]
-}
+def load_config(args):
+    # DEFAULT CONFIG LOADED FIRST
+    config = DEF_CONFIG
 
-# DEFAULT GYM ENVIRONMENT CONFIGURATION
-DEF_ENVCONFIG = {
-    'socket' : 1,
-    'cores'  : DEF_CPUCONFIG['1']
-}
+    # FIELDS MODIFIED WITH THOSE OF GENERAL CONFIG
+    if 'config' in args:
+        for field in config:
+            config[field] = args.config[field]
+    
+    # FIELDS MODIFIED WITH THOSE OF PARTICULAR CONFIGS
+    argsdict = vars(args)
+    for field in config:
+        if field in args:
+            config[field] = argsdict[field]
 
-# DEFAULT WORKLOAD CONFIGURATION
-DEF_WORKCONFIG = {
-    'size'   : 1000,
-    'groups' : [[core] for core in DEF_ENVCONFIG['cores']]
-}
-
-# DEFAULT TRAINING CONFIGURATION
-DEF_TRAINCONFIG = {
-    'epochs'    : 5,
-    'chkptpath' : 'trained_agents/default',
-    'verbose'   : True
-}
+#########################
+# --------------------- #
+#########################
 
 
 
-
+    
 
 #########################
 ### UTILITY FUNCTIONS ###
@@ -82,6 +107,7 @@ def get_cores(sockets, config):
 #########################
 # --------------------- #
 #########################
+
 
 
 
@@ -251,7 +277,7 @@ def train_agent(agent, config):
         model = policy.model
         print(model.base_model.summary())
 
-def train(env, envconfig, work, workconfig, agentconfig, trainconfig):
+def train(env, work, config):
     """
         Generates a PPO agent based on the specified GYM environment and agent
         configuration. The agent is trained while the specified workload runs
@@ -262,33 +288,27 @@ def train(env, envconfig, work, workconfig, agentconfig, trainconfig):
         ----------
         env : str
             Name of the GYM environment to use for the agent.
-        envconfig : dict
-            Configuration of the GYM environment.
         work : str
             Name of the workload operation to be run in the background.
-        workconfig : dict
-            Configuration of the background workload.
-        agentconfig : dict
-            Configuration of the PPO agent.
-        trainconfig : dict
-            Configuration of the training process.
+        config : dict
+            General configuration of the training environment.
     """
     import ray
     from  ray.tune.registry import register_env
 
     ## REGISTER ENVIRONMENT
-    Env = ENVIRONMENTS[env]
+    Env = config['gymenvs'][env]
     register_env(env, lambda config: Env(**config))
     
     ## AGENT CONFIGURATION
     ray.init(ignore_reinit_error=True)
-    agent = set_PPOagent(env, envconfig, agentconfig)
+    agent = set_PPOagent(env, config['envconfig'], config['agentconfig'])
 
     ## BACKGROUND WORKLOAD INITIALIZATION
-    workers = start_work(work, workconfig)
+    workers = start_work(work, config['workconfig'])
 
     ## TRAINING
-    train_agent(agent, trainconfig)
+    train_agent(agent, config['trainconfig'])
 
     ## BACKGROUND WORKLOAD KILL
     end_work(workers)
@@ -309,6 +329,14 @@ def get_parser():
     desc = ""
     parser = argparse.ArgumentParser(description = desc)
 
+    ## GENERAL CONFIGURATION
+    genconfig_help = "Dict with the general configuration for the script."
+    parser.add_argument(
+        '-g', '--config', metavar='config', help=genconfig_help,
+        type=read_json,
+        default=DEF_CONFIG
+    )
+
     ## GYM ENVIRONMENT
     env_help = "Name of GYM environment that agents will use to be trained: "
     env_help += "CPUEnv00-v0 CPUEnv01-v0 CPUEnv02-v0."
@@ -319,7 +347,7 @@ def get_parser():
     parser.add_argument(
         '-e', '--envconfig', metavar='envconfig', help=envconfig_help,
         type=read_json,
-        default=DEF_ENVCONFIG
+        default=argparse.SUPPRESS
     )
 
     ## WORKLOAD
@@ -333,7 +361,7 @@ def get_parser():
     parser.add_argument(
         '-w', '--workconfig', metavar='workconfig', help=workconfig_help, 
         type=read_json, 
-        default=DEF_WORKCONFIG
+        default=argparse.SUPPRESS
     )
 
     ## AGENT CONFIGURATION
@@ -341,7 +369,7 @@ def get_parser():
     parser.add_argument(
         '-a', '--agentconfig', metavar='agentconfig', help=agentconfig_help,
         type=read_json,
-        default=None
+        default=argparse.SUPPRESS
     )
 
     ## TRAINING CONFIGURATION
@@ -349,7 +377,7 @@ def get_parser():
     parser.add_argument(
         '-t', '--trainconfig', metavar='trainconfig', help=trainconfig_help,
         type=read_json,
-        default=DEF_TRAINCONFIG
+        default=argparse.SUPPRESS
     )
 
     ## CPU CONFIGURATION
@@ -357,7 +385,7 @@ def get_parser():
     parser.add_argument(
         '-c', '--cpuconfig', metavar='cpuconfig', help=cpuconfig_help,
         type=read_json,
-        default=DEF_CPUCONFIG
+        default=argparse.SUPPRESS
     )
 
     ## PROCESS AFFINITY
@@ -385,6 +413,9 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
+    # SET CONFIGURATION
+    config = load_config(args)
+
     # SET TRAINING PROCESS AFFINITY
     if 'affcores' in args:
         os.sched_setaffinity(0, args.affcores)
@@ -395,11 +426,8 @@ def main():
     ## TRAIN
     train(
         env         = args.env, 
-        envconfig   = args.envconfig,
         work        = args.work,
-        workconfig  = args.workconfig,
-        agentconfig = args.agentconfig,
-        trainconfig = args.trainconfig
+        config      = config
     )
 
 
