@@ -60,7 +60,7 @@ def load_config(args):
 
     # FIELDS MODIFIED WITH THOSE OF GENERAL CONFIG
     if 'config' in args:
-        for field in config:
+        for field in args.config:
             config[field] = args.config[field]
     
     # FIELDS MODIFIED WITH THOSE OF PARTICULAR CONFIGS
@@ -68,6 +68,13 @@ def load_config(args):
     for field in config:
         if field in args:
             config[field] = argsdict[field]
+
+def save_config(env, work, config):
+    config['env']  = env
+    config['work'] = work
+
+    with open(config['chkptpath']) as jsonf:
+        json.dump(config, jsonf)
 
 #########################
 # --------------------- #
