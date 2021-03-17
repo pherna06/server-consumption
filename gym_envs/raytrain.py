@@ -21,16 +21,16 @@ import shutil
 ##### CONFIGURATION #####
 #########################
 
+GYMENVS = {
+    'CPUEnv00-v0' : CPUEnv00,
+    'CPUEnv01-v0' : CPUEnv01,
+    'CPUEnv02-v0' : CPUEnv02
+}
+
 DEF_CONFIG = {
     # POSITIONAL ARGUMENTS
-    'env'  : None,
-    'work' : None,
-    # GYM CUSTOM ENVIRONMENTS
-    'gymenvs' : {
-        'CPUEnv00-v0' : CPUEnv00,
-        'CPUEnv01-v0' : CPUEnv01,
-        'CPUEnv02-v0' : CPUEnv02
-    },
+    'env'  : '',
+    'work' : '',
     # CPU DEFAULT SOCKET-CORES CONFIGURATION
     'cpuconfig' : {
         '0' : [0,1,2,3,4,5,6,7],
@@ -47,7 +47,7 @@ DEF_CONFIG = {
         'groups' : [[core] for core in [8,9,10,11,12,13,14,15]]
     },
     # DEFAULT AGENT CONFIGURATION
-    'agentconfig' : None,
+    'agentconfig' : {},
     # DEFAULT TRAINING CONFIGURATION
     'trainconfig' : {
         'epochs'    : 5,
@@ -57,10 +57,10 @@ DEF_CONFIG = {
 }
 
 PARTICULAR_CONFIGS = [
-    'gymenvs',
     'cpuconfig',
     'envconfig',
     'workconfig',
+    'agentconfig',
     'trainconfig'
 ]
 
@@ -85,8 +85,10 @@ def save_config(env, work, config):
     config['env']  = env
     config['work'] = work
 
-    with open(config['chkptpath'] + '/config.json') as jsonf:
-        json.dump(config, jsonf)
+    savepath = config['trainconfig']['chkptpath']
+
+    with open(savepath + '/config.json', 'w+') as jsonf:
+        json.dump(config, jsonf, indent = 4)
 
 #########################
 # --------------------- #
@@ -244,7 +246,7 @@ def set_PPOagent(env, envconfig, agentconfig):
     import ray.rllib.agents.ppo as ppo
 
     config = agentconfig
-    if config is None:
+    if not config:
         config = ppo.DEFAULT_CONFIG.copy()
 
         config['log_level']   = 'WARN'
@@ -319,7 +321,7 @@ def train(env, work, config):
     from  ray.tune.registry import register_env
 
     ## REGISTER ENVIRONMENT
-    Env = config['gymenvs'][env]
+    Env = GYMENVS[env]
     register_env(env, lambda config: Env(**config))
     
     ## AGENT CONFIGURATION
