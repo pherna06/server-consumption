@@ -1,5 +1,5 @@
 {
-    "iter"    : 10,
+    "iter"    : 100,
     "logpath" : "tests/floatproduct-02/powerpoint-15",
     "verbose" : 0
 }
