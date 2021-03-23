@@ -52,7 +52,7 @@ DEF_CONFIG = {
     'trainconfig' : {
         'epochs'    : 5,
         'chkptpath' : 'trained_agents/default',
-        'verbose'   : True
+        'verbose'   : 1
     }
 }
 
@@ -318,7 +318,7 @@ def train(env, work, config):
             General configuration of the training environment.
     """
     import ray
-    from  ray.tune.registry import register_env
+    from   ray.tune.registry import register_env
 
     ## REGISTER ENVIRONMENT
     Env = GYMENVS[env]
@@ -445,11 +445,11 @@ def main():
 
     # SET POSITIONAL ARGS
     env = config['env']
-    if env is None:
+    if env == '':
         env = args.env
 
     work = config['work']
-    if work is None:
+    if work == '':
         work = args.work
 
     # SET TRAINING PROCESS AFFINITY
