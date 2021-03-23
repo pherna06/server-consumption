@@ -60,7 +60,7 @@ def load_config(args):
 
     # DEFAULT TRAINED AGENT CONFIG
     if args.default:
-        trainconfig = read_json(args.agentpath + '/config.json')
+        trainconfig = read_json(args.trainpath + '/config.json')
         for field in trainconfig:
             config[field] = trainconfig[field]
         
@@ -341,8 +341,8 @@ def display_results(results, total):
     print("Frequency (MHz)   Count\n")
     for freq in results:
         count = results[freq]
-        print(f"{freq//1000:<15}   {count/total:<5}   |")
-        [printf(".", end='') for _ in range((100 * count) // total]
+        print(f"{freq//1000:<15}   {count/total:<5}   |", end='')
+        [print(".", end='') for _ in range((50 * count) // total)]
         print("")
 
 #########################
@@ -376,16 +376,19 @@ def get_PPOagent(env, envconfig, chkptpath):
         agent : PPOTrainer
             The trained agent.
     """
+    import ray.rllib.agents.ppo as ppo
+
     config = ppo.DEFAULT_CONFIG.copy()
-    config['log_level']  = 'WARN'
-    config['env_config'] = envconfig
+    config['log_level']   = 'WARN'
+    config['num_workers'] = 0
+    config['env_config']  = envconfig
 
     agent = ppo.PPOTrainer(config, env=env)
     agent.restore(chkptpath)
 
     return agent
 
-def test_env(testenv, envconfig, agent, iterations, verbose):
+def test_env(testenv, agent, config):
     """
         Test of a GYM environment with an agent deciding on actions based
         on environment state. The test is repeated for the indicated 
@@ -440,14 +443,14 @@ def test_env(testenv, envconfig, agent, iterations, verbose):
         # STEPS TO GOAL (OR MAXSTEPS)
         for s in range(testenv.MAXSTEPS):
             action = agent.compute_action(state)
-            testenv.step(action)
+            state, _, done, _ = testenv.step(action)
 
             status = testenv.status()
             history[f"Iteration {i + 1}"][f"Step {s + 1}"] = status
             
             if verbose:
-                display_status(f"Step {i + 1}")
-            if status['done']:
+                display_status(f"Step {s + 1}", status)
+            if done:
                 break
 
         # RECORD FREQUENCY OF FINAL STATE
@@ -557,7 +560,7 @@ def get_parser():
     parser.add_argument(
         '-g', '--config', metavar='config', help=genconfig_help,
         type=read_json,
-        defaul=DEF_CONFIG
+        default=DEF_CONFIG
     )
 
     ## GYM ENVIRONMENT.
@@ -600,8 +603,8 @@ def get_parser():
     testconfig_help = "Dict of values for the configuration of agent testing."
     parser.add_argument(
         '-x', '--testconfig', metavar='testconfig', help=testconfig_help,
-        type=json.loads,
-        default=DEF_TESTCONFIG
+        type=read_json,
+        default=argparse.SUPPRESS
     )
 
     ## PROCESS AFFINITY
@@ -645,13 +648,14 @@ def main():
     if 'affcores' in args:
         os.sched_setaffinity(0, args.affcores)
     elif 'affsockets' in args:
-        os.sched_setaffinity(0, get_cores(args.affsockets))
+        cores = get_cores(args.affsockets, config['cpuconfig'])
+        os.sched_setaffinity(0, cores)
 
     ## TEST
     test(
         env    = env,
         work   = work,
-        path   = args.agentpath,
+        path   = args.trainpath,
         chkpt  = args.chkpt,
         config = config
     )

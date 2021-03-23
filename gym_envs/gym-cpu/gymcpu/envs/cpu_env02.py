@@ -209,9 +209,10 @@ class CPUEnv02(gym.Env):
             f"info: {self._info}"
         )
 
-    def info(self):
-        # TODO
-        pass
+    def status(self):
+        status = self._info
+
+        return status
 
     def seed(self, seed=None):
         ### Make random number generator from seed.
