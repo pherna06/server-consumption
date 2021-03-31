@@ -20,22 +20,18 @@ def run_test(env, actions):
 	for i in range(actions):
 		action = env.action_space.sample()
 
-		if verbose:
-			print('action:', action)
+		print('action:', action)
 
 		state, reward, done, info = env.step(action)
 		sum_reward += reward
 
-		if verbose:
-			env.render()
+		env.render()
 
 		if done:
-			if verbose:
-				print(f"done @ step {i}")
+			print(f"done @ step {i}")
 			break
     
-	if verbose:
-		print('cumulative reward', sum_reward)
+	print('cumulative reward', sum_reward)
 
 	return sum_reward
 
