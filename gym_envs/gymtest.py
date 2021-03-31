@@ -1,13 +1,23 @@
-import gym
 import gymcpu
-import sys
+from   gym    import make
+
 import argparse
 
-def run_test(env, verbose=False):
+DEF_ACTIONS = 10
+
+def run_test(env, actions):
+	"""
+		Test the given GYM environment for a number of actions.
+
+		Parameters
+		----------
+		env : GYM Environment
+			The environment to be tested.
+	"""
     env.reset()
     sum_reward = 0
 
-    for i in range(env.MAXSTEPS):
+    for i in range(actions):
         action = env.action_space.sample()
 
         if verbose:
@@ -40,6 +50,14 @@ def get_parser():
             type=str
     )
 
+	act_help = "Number of actions to perform in test. "
+	act_help = "Set to {} by default.".format(DEF_ACTIONS)
+	parser.add_argument(
+		'-a', '--actions', help = act_help,
+		type = int,
+		default = DEF_ACTIONS
+	)
+
     return parser
 
 def main():
@@ -48,12 +66,11 @@ def main():
 
     kwargs = {
         'socket': 0,
-        'cores': [0,1,2,3,4,5,6,7],
-        'limit': 40,
+        'cores': [0],
     }
 
-    env = gym.make(args.env, **kwargs)
-    run_test(env, verbose=True)
+    env = make(args.env, **kwargs)
+    run_test(env, args.actions)
 
 if __name__ == "__main__":
     main()
