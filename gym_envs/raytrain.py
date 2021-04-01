@@ -27,23 +27,22 @@ import shutil
 #########################
 
 DEF_CONFIG = {
-    # POSITIONAL ARGUMENTS
+    # ENVIRONMENT AND WORK ID NAMES
     'env'  : '',
     'work' : '',
     # CPU DEFAULT SOCKET-CORES CONFIGURATION
     'cpuconfig' : {
-        '0' : [0,1,2,3,4,5,6,7],
-        '1' : [8,9,10,11,12,13,14,15]
+        '0' : [0]
     },
     # DEFAULT GYM ENVIRONMENT CONFIGURATION
     'envconfig' : {
-        'socket' : 1,
-        'cores'  : [8,9,10,11,12,13,14,15]
+        'socket' : 0,
+        'cores'  : [0]
     },
     # DEFAULT WORKLOAD CONFIGURATIONgit 
     'workconfig' : {
         'size'   : 1000,
-        'groups' : [[core] for core in [8,9,10,11,12,13,14,15]]
+        'groups' : [[0]]
     },
     # DEFAULT AGENT CONFIGURATION
     'agentconfig' : {},
@@ -55,28 +54,17 @@ DEF_CONFIG = {
     }
 }
 
-PARTICULAR_CONFIGS = [
-    'cpuconfig',
-    'envconfig',
-    'workconfig',
-    'agentconfig',
-    'trainconfig'
-]
-
 def load_config(args):
     # DEFAULT CONFIG LOADED FIRST
     config = DEF_CONFIG
-
-    # FIELDS MODIFIED WITH THOSE OF GENERAL CONFIG
-    if 'config' in args:
-        for field in args.config:
-            config[field] = args.config[field]
     
-    # FIELDS MODIFIED WITH THOSE OF PARTICULAR CONFIGS
+    # FIELDS MODIFIED WITH GENERAL AND PARTICULAR CONFIGURATIONS
     argsdict = vars(args)
-    for field in PARTICULAR_CONFIGS:
+    for field in DEF_CONFIG:
         if field in args:
             config[field] = argsdict[field]
+        elif field in args.config:
+            config[field] = args.config[field]
 
     return config
 
@@ -300,7 +288,7 @@ def train_agent(agent, config):
         model = policy.model
         print(model.base_model.summary())
 
-def train(env, work, config):
+def train(config):
     """
         Generates a PPO agent based on the specified GYM environment and agent
         configuration. The agent is trained while the specified workload runs
@@ -318,6 +306,9 @@ def train(env, work, config):
     """
     import ray
     from   ray.tune.registry import register_env
+
+    env = config['env']
+    work = config['work']
 
     ## REGISTER ENVIRONMENT
     Env = load_env_class( gym_spec(env).entry_point )
@@ -356,62 +347,80 @@ def get_parser():
     parser = argparse.ArgumentParser(description = desc)
 
     ## GENERAL CONFIGURATION
-    genconfig_help = "Dict with the general configuration for the script."
+    genconfig_help = "JSON file with the script general configuration."
     parser.add_argument(
-        '-g', '--config', metavar='config', help=genconfig_help,
-        type=read_json,
-        default=DEF_CONFIG
+        '-g', '--config', metavar='config', 
+        help = genconfig_help,
+        type = read_json,
+        default = DEF_CONFIG
     )
 
-    ## GYM ENVIRONMENT
-    env_help = "Name of GYM environment that agents will use to be trained: "
-    env_help += "CPUEnv00-v0 CPUEnv01-v0 CPUEnv02-v0."
-    parser.add_argument('env', help=env_help)
-
-    envconfig_help = "Dict of values for the configuration of the environment "
-    envconfig_help += "in which the agent will be trained."
+    ## PARTICULAR CONFIGURATIONS
+    # Environment ID
+    env_help = "ID name of GYM environment the agent will use for training."
+    #env_help += "CPUEnv00-v0 CPUEnv01-v0 CPUEnv02-v0."
     parser.add_argument(
-        '-e', '--envconfig', metavar='envconfig', help=envconfig_help,
-        type=read_json,
-        default=argparse.SUPPRESS
+        '-e' '--env', metavar = 'env', 
+        help = env_help,
+        type = str,
+        default = argparse.SUPPRESS
     )
 
-    ## WORKLOAD
-    work_help = "Name of operation to be tested: intproduct inttranspose "
-    work_help += "intsort intscalar floatproduct floattranspose floatsort "
-    work_help += "floatscalar"
-    parser.add_argument('work', help=work_help)
-
-    workconfig_help = "Dict of values for the configuration of the background "
-    workconfig_help += "worload."
+    # Work ID
+    work_help = "ID name of operation executing in background during training."
+    #work_help += "intsort intscalar floatproduct floattranspose floatsort "
+    #work_help += "floatscalar"
     parser.add_argument(
-        '-w', '--workconfig', metavar='workconfig', help=workconfig_help, 
-        type=read_json, 
-        default=argparse.SUPPRESS
+        '-w', '--work', metavar = 'work',
+        help = work_help,
+        type = str,
+        default = argparse.SUPPRESS
     )
 
-    ## AGENT CONFIGURATION
-    agentconfig_help = "Dict of values for the configuration of the Ray agent."
+    # Environment configuration.
+    envconfig_help = "JSON file with the configuration for the GYM environment."
     parser.add_argument(
-        '-a', '--agentconfig', metavar='agentconfig', help=agentconfig_help,
-        type=read_json,
-        default=argparse.SUPPRESS
+        '--envconfig', metavar = 'envconfig',
+        help = envconfig_help,
+        type = read_json,
+        default = argparse.SUPPRESS
     )
 
-    ## TRAINING CONFIGURATION
-    trainconfig_help = "Dict of values for the configuration of agent train."
+    # Work configuration.
+    workconfig_help = "JSON file with the configuration for work in the background."
     parser.add_argument(
-        '-t', '--trainconfig', metavar='trainconfig', help=trainconfig_help,
-        type=read_json,
-        default=argparse.SUPPRESS
+        '--workconfig', metavar = 'workconfig',
+        help = workconfig_help,
+        type = read_json,
+        default = argparse.SUPPRESS
     )
 
-    ## CPU CONFIGURATION
-    cpuconfig_help = "Dict of socket-cores CPU relation."
+    # Ray Tune agent configuration.
+    agentconfig_help = "JSON file with the configuration for the Ray Tune agent. "
+    agentconfig_help += "If none, default Ray configuration will be used."
     parser.add_argument(
-        '-c', '--cpuconfig', metavar='cpuconfig', help=cpuconfig_help,
-        type=read_json,
-        default=argparse.SUPPRESS
+        '--agentconfig', metavar = 'agentconfig',
+        help = agentconfig_help,
+        type = read_json,
+        default = argparse.SUPPRESS
+    )
+
+    # Training process configuration.
+    trainconfig_help = "JSON file with the configuration for the training process."
+    parser.add_argument(
+        '--trainconfig', metavar = 'trainconfig',
+        help = trainconfig_help,
+        type = read_json,
+        default = argparse.SUPPRESS
+    )
+
+    # CPU configuration.
+    cpuconfig_help = "JSON file with the socket-cores relation of CPU."
+    parser.add_argument(
+        '--cpuconfig', metavar = 'cpuconfig',
+        help = cpuconfig_help,
+        type = read_json,
+        default = argparse.SUPPRESS
     )
 
     ## PROCESS AFFINITY
@@ -419,18 +428,20 @@ def get_parser():
 
     affcores_help = "The cores in which the agent will be trained."
     affinity.add_argument(
-        '--affcores', metavar='affcores', help=affcores_help,
-        nargs='+',
-        type=int,
-        default=argparse.SUPPRESS
+        '--affcores', metavar = 'affcores', 
+        help = affcores_help,
+        type = int,
+        nargs = '+',
+        default = argparse.SUPPRESS
     )
 
     affsockets_help = "The sockets in whose cores the agent will be trained."
     affinity.add_argument(
-        '--affsockets', metavar='affsockets', help=affsockets_help,
-        nargs='+',
-        type=int,
-        default=argparse.SUPPRESS
+        '--affsockets', metavar = 'affsockets', 
+        help = affsockets_help,
+        type = int,
+        nargs = '+',
+        default = argparse.SUPPRESS
     )
 
     return parser
@@ -442,15 +453,6 @@ def main():
     # SET CONFIGURATION
     config = load_config(args)
 
-    # SET POSITIONAL ARGS
-    env = config['env']
-    if env == '':
-        env = args.env
-
-    work = config['work']
-    if work == '':
-        work = args.work
-
     # SET TRAINING PROCESS AFFINITY
     if 'affcores' in args:
         os.sched_setaffinity(0, args.affcores)
@@ -459,11 +461,7 @@ def main():
         os.sched_setaffinity(0, cores)
 
     ## TRAIN
-    train(
-        env    = env, 
-        work   = work,
-        config = config
-    )
+    train(config)
 
 
 if __name__ == '__main__':
