@@ -1,8 +1,13 @@
-import gym
+# Local module that registers custom environments in GYM.
 import gymcpu
-from   gymcpu.envs.cpu_env00 import CPUEnv00
-from   gymcpu.envs.cpu_env01 import CPUEnv01
-from   gymcpu.envs.cpu_env02 import CPUEnv02
+
+# GYM functions to deal with those environments.
+from gym import make     as gym_make
+from gym import register as gym_register
+from gym import spec     as gym_spec
+
+# Function to obtain a callable from an environment entry_point.
+from gym.envs.registration import load as load_env_class
 
 import numpypower as npp
 
@@ -20,12 +25,6 @@ import shutil
 #########################
 ##### CONFIGURATION #####
 #########################
-
-GYMENVS = {
-    'CPUEnv00-v0' : CPUEnv00,
-    'CPUEnv01-v0' : CPUEnv01,
-    'CPUEnv02-v0' : CPUEnv02
-}
 
 DEF_CONFIG = {
     # POSITIONAL ARGUMENTS
@@ -321,7 +320,7 @@ def train(env, work, config):
     from   ray.tune.registry import register_env
 
     ## REGISTER ENVIRONMENT
-    Env = GYMENVS[env]
+    Env = load_env_class( gym_spec(env).entry_point )
     register_env(env, lambda config: Env(**config))
     
     ## AGENT CONFIGURATION
