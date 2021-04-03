@@ -14,3 +14,8 @@ register(
 	id='CPUEnv02-v0',
 	entry_point='gymcpu.envs:CPUEnv02',
 )
+
+register(
+	id='CPUEnv03-v0',
+	entry_point='gymcpu.envs:CPUEnv03'
+)
