@@ -69,9 +69,6 @@ def load_config(args):
     return config
 
 def save_config(env, work, config):
-    config['env']  = env
-    config['work'] = work
-
     savepath = config['trainconfig']['chkptpath']
 
     with open(savepath + '/config.json', 'w+') as jsonf:

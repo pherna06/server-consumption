@@ -1,8 +1,13 @@
-import gym
+# Local module that registers custom environments in GYM.
 import gymcpu
-from   gymcpu.envs.cpu_env00 import CPUEnv00
-from   gymcpu.envs.cpu_env01 import CPUEnv01
-from   gymcpu.envs.cpu_env02 import CPUEnv02
+
+# GYM functions to deal with those environments.
+from gym import make     as gym_make
+from gym import register as gym_register
+from gym import spec     as gym_spec
+
+# Function to obtain a callable from an environment entry_point.
+from gym.envs.registration import load as load_env_class
 
 import numpypower as npp
 
@@ -13,64 +18,53 @@ import os
 import signal
 import shutil
 
-# GYM CUSTOM ENVIRONMENTS
-GYMENVS = {
-    'CPUEnv00-v0' : CPUEnv00,
-    'CPUEnv01-v0' : CPUEnv01,
-    'CPUEnv02-v0' : CPUEnv02
-}
+import matplotlib.pyplot as plt
+
+
+
+
+
+#########################
+##### CONFIGURATION #####
+#########################
 
 DEF_CONFIG = {
-    # POSITIONAL ARGUMENTS
+    # ENVIRONMENT AND WORK ID NAMES
     'env'  : '',
     'work' : '',
     # CPU DEFAULT SOCKET-CORES CONFIGURATION
     'cpuconfig' : {
-        '0' : [0,1,2,3,4,5,6,7],
-        '1' : [8,9,10,11,12,13,14,15]
+        '0' : [0]
     },
     # DEFAULT GYM ENVIRONMENT CONFIGURATION
     'envconfig' : {
-        'socket' : 1,
-        'cores'  : [8,9,10,11,12,13,14,15]
+        'socket' : 0,
+        'cores'  : [0]
     },
     # DEFAULT WORKLOAD CONFIGURATIONgit 
     'workconfig' : {
         'size'   : 1000,
-        'groups' : [[core] for core in [8,9,10,11,12,13,14,15]]
+        'groups' : [[0]]
     },
     # DEFAULT TEST CONFIGURATION
     'testconfig' : {
-        'iter'      : 10,
-        'logpath'   : 'tests/default',
+        'iter'      : 1,
+        'chkptpath' : 'tests/default',
         'verbose'   : 1
     }
 }
 
-PARTICULAR_CONFIGS = [
-    'cpuconfig',
-    'envconfig',
-    'workconfig',
-    'testconfig'
-]
-
 def load_config(args):
     # DEFAULT CONFIG LOADED FIRST
-    config = DEF_CONFIG
+    config = {}
+    if args.loadconfig:
+        config = read_json( args.agent + '/config.json' )
+    else:
+        config = args.config
 
-    # DEFAULT TRAINED AGENT CONFIG
-    if args.default:
-        trainconfig = read_json(args.trainpath + '/config.json')
-        for field in trainconfig:
-            config[field] = trainconfig[field]
-        
-    if args.personal and 'config' in args:
-        for field in args.config:
-            config[field] = args.config[field]
-    
-    # FIELDS MODIFIED WITH THOSE OF PARTICULAR CONFIGS
+    # FIELDS MODIFIED WITH GENERAL AND PARTICULAR CONFIGURATIONS
     argsdict = vars(args)
-    for field in PARTICULAR_CONFIGS:
+    for field in DEF_CONFIG:
         if field in args:
             config[field] = argsdict[field]
 
@@ -208,17 +202,15 @@ def end_work(workers):
 # LOG & CSV GENERATION ##
 #########################
 
-def generate_log(results, history, path):
+def generate_log(history, path):
     """
-        Given the results and the status history log of an agent test, a CSV 
-        file is generated with the results and a log file is generated with
-        the status history of the environment during the test iterations. Both
-        files are generated in the specified path.
+        Given the status history log of an agent test, a CSV file is generated 
+        with the results and a log file is generated with the status history of 
+        the environment during the test iterations. Both files are generated in 
+        the specified path.
 
         Parameters
         ----------
-        results : dict(int, int)
-            Results of test, storing the frequency count of iterations.
         history : dict(str, str, dict)
             Status history of the environment during test, for each iteration 
             and step.
@@ -226,40 +218,52 @@ def generate_log(results, history, path):
             Path where files will be created (overwritten if necessary)
         
     """
-    respath  = path + '/results.csv'
-    histpath = path + '/test.log'
-
-    ## RESULTS CSV
-    results_csv(results, respath)
-
     ## STATUS HISTORY LOG
+    histpath = path + '/test.log'
     history_log(history, histpath)
 
-def results_csv(results, csvpath):
+    ## FREQUENCY GRAPH
+    freqpath = path + '/frequency.png'
+    save_graph(history, freqpath, 'frequency')
+
+    ## POWER GRAPH
+    powerpath = path + '/power.png'
+    save_graph(history, powerpath, 'power')
+
+def save_graph(history, path, varstr):
     """
-        Creates or overwrites a CSV file with the frequency count results of
-        the agent test in the specified path.
+        Creates or overwrites a PNG graph with the value of an agent's variable
+        in each step and iteration.
 
         Parameters
         ----------
-        results : dict(int, int)
-            Results of test, storing the frequency count of iterations.
-        csvpath : str
-            Namepath of the CSV file.
+        history : dict(str, str, int)
+            Status history of the environment during test, for each iteration 
+            and step.
+        path : str
+            Namepath of the PNG file.
+        varstr : str
+            Name of the variable.
     """
     # Create or overwrite
-    if os.path.exists(csvpath):
-        os.remove(csvpath)
-    csvf = open(csvpath, 'w')
+    if os.path.exists(path):
+        os.remove(path)
 
-    # Header.
-    csvf.write("Frequency, Count\n")
+    # Get variables.
+    for it in history:
+        x = []
+        y = []
+        step = 0
+        for info in history[it]:
+            x.append(step)
+            y.append(history[it][info][varstr])
 
-    # Results.
-    for freq in sorted(results):
-        csvf.write(f"{freq}, {results[freq]}\n")
+        plt.plot(x, y)
 
-    csvf.close()
+    plt.xlabel('step')
+    plt.ylabel(varstr)
+
+    plt.savefig(path)
 
 def history_log(history, logpath):
     """
@@ -277,7 +281,7 @@ def history_log(history, logpath):
     # Create or overwrite
     if os.path.exists(logpath):
         os.remove(logpath)
-    logf = open(logpath, 'w')
+    logf = open(logpath, 'w+')
 
     for it in history:
         logf.write(f"{it}\n")
@@ -323,27 +327,6 @@ def display_status(label, status):
         print(f"\t{data}: {status[data]}")
 
     input("Press enter to continue...")
-
-def display_results(results, total):
-    """
-        Displays, in standard output, the final results of the test of an
-        agent, that is, the frequency count.
-
-        Parameters
-        ----------
-        results : dict(int, int)
-            Results of test, storing the frequency count of iterations.
-        total : int
-            Number of events stored.
-    """
-    print("Results")
-    print("-------------------------")
-    print("Frequency (MHz)   Count\n")
-    for freq in results:
-        count = results[freq]
-        print(f"{freq//1000:<15}   {count/total:<5}   |", end='')
-        [print(".", end='') for _ in range((50 * count) // total)]
-        print("")
 
 #########################
 # --------------------- #
@@ -411,8 +394,6 @@ def test_env(testenv, agent, config):
 
         Returns
         -------
-        results : dict(int, int)
-            Results of test, storing the frequency count of iterations.
         history : dict(str, str, dict)
             Status history of the environment during test, for each iteration 
             and step.
@@ -420,17 +401,13 @@ def test_env(testenv, agent, config):
     iterations = config['iter']
     verbose    = config['verbose']
 
-    results = {}
-    for freq in testenv._frequencies:
-        results[freq] = 0
-
     history = {}
 
     # TEST ITERATIONS
     for i in range(iterations):
         # INITIAL STATUS
         state = testenv.reset()
-        status = testenv.status()
+        status = testenv._info.copy()
         
         history[f"Iteration {i + 1}"] = {}
         history[f"Iteration {i + 1}"]["Step 0"] = status
@@ -443,9 +420,9 @@ def test_env(testenv, agent, config):
         # STEPS TO GOAL (OR MAXSTEPS)
         for s in range(testenv.MAXSTEPS):
             action = agent.compute_action(state)
-            state, _, done, _ = testenv.step(action)
+            state, _, done, info = testenv.step(action)
 
-            status = testenv.status()
+            status = info.copy()
             history[f"Iteration {i + 1}"][f"Step {s + 1}"] = status
             
             if verbose:
@@ -453,16 +430,9 @@ def test_env(testenv, agent, config):
             if done:
                 break
 
-        # RECORD FREQUENCY OF FINAL STATE
-        freq = status['frequency']
-        results[freq] += 1
+    return history
 
-    # DISPLAY FREQUENCY COUNT RESULTS
-    display_results(results, iterations)
-
-    return results, history
-
-def test(env, work, path, chkpt, config):
+def test(path, chkpt, config):
     """
         Retrieves a trained PPO agent from the indicated path. While
         the specified workload runs in the background, the specified 
@@ -473,15 +443,11 @@ def test(env, work, path, chkpt, config):
 
         Parameters
         ----------
-        env : str
-            Name of the GYM environment to use for the agent.
-        work : str
-            Name of the workload operation to be run in the background.
         path : str
             Path of folder where the trained agent checkpoints are stored.
         chkpt : int
             Number of the training checkpoint to be used.
-        testconfig : dict
+        config : dict
             General configuration of the test environment.
 
         Returns
@@ -495,8 +461,11 @@ def test(env, work, path, chkpt, config):
     import ray
     from   ray.tune.registry import register_env
 
+    env = config['env']
+    work = config['work']
+
     ## REGISTER ENVIRONMENT
-    Env = GYMENVS[env]
+    Env = load_env_class( gym_spec(env).entry_point )
     register_env(env, lambda config: Env(**config))
 
     ## TRAINED AGENT RETRIEVAL
@@ -509,8 +478,8 @@ def test(env, work, path, chkpt, config):
     workers = start_work(work, config['workconfig'])
 
     ## TEST ENVIRONMENT WITH TRAINED AGENT
-    testenv = gym.make(env, **config['envconfig'])
-    results, history = test_env(testenv, agent, config['testconfig'])
+    testenv = gym_make(env, **config['envconfig'])
+    history = test_env(testenv, agent, config['testconfig'])
 
     ## BACKGROUND WORKLOAD KILL
     end_work(workers)
@@ -518,9 +487,9 @@ def test(env, work, path, chkpt, config):
     ## SAVE RESULTS AND STATUS HISTORY
     logpath = config['testconfig'].get('logpath', None)
     if logpath is not None:
-        generate_log(results, history, logpath)
+        generate_log(history, logpath)
 
-    return results, history
+    return history
 
 #########################
 # --------------------- #
@@ -538,73 +507,104 @@ def get_parser():
     desc = ""
     parser = argparse.ArgumentParser(description = desc)
 
-    # Choose environment, work and agent configuration.
-    inputagent = parser.add_mutually_exclusive_group(required=True)
-
-    ## FROM TRAINED AGENT SAVED CONFIGURATION.
-    defconfig_help = "Uses config.json file generated from the agent training."
-    inputagent.add_argument(
-        '--default', help=defconfig_help,
-        action='store_true'
-    )
-
-    ## FROM SPECIFIED INPUT CONFIG FILES.
-    personal_help = "Uses the configuration specified directly in the command."
-    inputagent.add_argument(
-        '--personal', help=personal_help,
-        action='store_true'
-    )
-
-    ## GENERAL CONFIGURATION.
-    genconfig_help = "Dict with the general configuration for the script."
+    ## TRAINED AGENT
+    agent_help = "Path of folder where the agent training checkpoints are "
+    agent_help += "stored."
     parser.add_argument(
-        '-g', '--config', metavar='config', help=genconfig_help,
-        type=read_json,
-        default=DEF_CONFIG
+        'agent', 
+        help = agent_help
     )
 
-    ## GYM ENVIRONMENT.
-    env_help = "Name of GYM environment that agents will use to be trained: "
-    env_help += "CPUEnv00-v0 CPUEnv01-v0 CPUEnv02-v0."
-    parser.add_argument('env', help=env_help)
-
-    envconfig_help = "Dict of values for the configuration of the environment "
-    envconfig_help += "in which the agent will be trained."
-    parser.add_argument(
-        '-e', '--envconfig', metavar='envconfig', help=envconfig_help,
-        type=read_json,
-        default=argparse.SUPPRESS
-    )
-
-    ## WORKLOAD
-    work_help = "Name of operation to be tested: intproduct inttranspose "
-    work_help += "intsort intscalar floatproduct floattranspose floatsort "
-    work_help += "floatscalar"
-    parser.add_argument('work', help=work_help)
-
-    workconfig_help = "Dict of values for the configuration of the background "
-    workconfig_help += "worload."
-    parser.add_argument(
-        '-w', '--workconfig', metavar='workconfig', help=workconfig_help, 
-        type=read_json, 
-        default=argparse.SUPPRESS
-    )
-
-    ## TRAINED AGENT PATH
-    trainpath_help = "Path of folder where the agent training checkpoints are "
-    trainpath_help += "stored."
-    parser.add_argument('trainpath', help=trainpath_help)
-
-    ## CHECKPOINT SELECTION.
+    ## CHECKPOINT.
     checkpoint_help = "Number of the training checkpoint to be used."
-    parser.add_argument('chkpt', help=checkpoint_help)
-
-    ## TEST CONFIGURATION
-    testconfig_help = "Dict of values for the configuration of agent testing."
     parser.add_argument(
-        '-x', '--testconfig', metavar='testconfig', help=testconfig_help,
-        type=read_json,
-        default=argparse.SUPPRESS
+        'checkpoint', 
+        help = checkpoint_help
+    )
+
+    ## LOAD AGENT CONFIGURATION.
+    loadconfig_help = "Uses 'config.json' file generated from the agent training."
+    parser.add_argument(
+        '--loadconfig', 
+        help = loadconfig_help,
+        action = 'store_true'
+    )
+
+    ## GENERAL CONFIGURATION
+    genconfig_help = "JSON file with the script general configuration."
+    parser.add_argument(
+        '-g', '--config', metavar='config', 
+        help = genconfig_help,
+        type = read_json,
+        default = DEF_CONFIG
+    )
+
+    ## PARTICULAR CONFIGURATIONS
+    # Environment ID
+    env_help = "ID name of GYM environment the agent will use for training."
+    #env_help += "CPUEnv00-v0 CPUEnv01-v0 CPUEnv02-v0."
+    parser.add_argument(
+        '-e' '--env', metavar = 'env', 
+        help = env_help,
+        type = str,
+        default = argparse.SUPPRESS
+    )
+
+    # Work ID
+    work_help = "ID name of operation executing in background during training."
+    #work_help += "intsort intscalar floatproduct floattranspose floatsort "
+    #work_help += "floatscalar"
+    parser.add_argument(
+        '-w', '--work', metavar = 'work',
+        help = work_help,
+        type = str,
+        default = argparse.SUPPRESS
+    )
+
+    # Environment configuration.
+    envconfig_help = "JSON file with the configuration for the GYM environment."
+    parser.add_argument(
+        '--envconfig', metavar = 'envconfig',
+        help = envconfig_help,
+        type = read_json,
+        default = argparse.SUPPRESS
+    )
+
+    # Work configuration.
+    workconfig_help = "JSON file with the configuration for work in the background."
+    parser.add_argument(
+        '--workconfig', metavar = 'workconfig',
+        help = workconfig_help,
+        type = read_json,
+        default = argparse.SUPPRESS
+    )
+
+    # Ray Tune agent configuration.
+    agentconfig_help = "JSON file with the configuration for the Ray Tune agent. "
+    agentconfig_help += "If none, default Ray configuration will be used."
+    parser.add_argument(
+        '--agentconfig', metavar = 'agentconfig',
+        help = agentconfig_help,
+        type = read_json,
+        default = argparse.SUPPRESS
+    )
+
+    # Training process configuration.
+    testconfig_help = "JSON file with the configuration for the test process."
+    parser.add_argument(
+        '--testconfig', metavar = 'testconfig',
+        help = testconfig_help,
+        type = read_json,
+        default = argparse.SUPPRESS
+    )
+
+    # CPU configuration.
+    cpuconfig_help = "JSON file with the socket-cores relation of CPU."
+    parser.add_argument(
+        '--cpuconfig', metavar = 'cpuconfig',
+        help = cpuconfig_help,
+        type = read_json,
+        default = argparse.SUPPRESS
     )
 
     ## PROCESS AFFINITY
@@ -612,18 +612,20 @@ def get_parser():
 
     affcores_help = "The cores in which the agent will be trained."
     affinity.add_argument(
-        '--affcores', metavar='affcores', help=affcores_help,
-        nargs='+',
-        type=int,
-        default=argparse.SUPPRESS
+        '--affcores', metavar = 'affcores', 
+        help = affcores_help,
+        type = int,
+        nargs = '+',
+        default = argparse.SUPPRESS
     )
 
     affsockets_help = "The sockets in whose cores the agent will be trained."
     affinity.add_argument(
-        '--affsockets', metavar='affsockets', help=affsockets_help,
-        nargs='+',
-        type=int,
-        default=argparse.SUPPRESS
+        '--affsockets', metavar = 'affsockets', 
+        help = affsockets_help,
+        type = int,
+        nargs = '+',
+        default = argparse.SUPPRESS
     )
     
     return parser
@@ -635,15 +637,6 @@ def main():
     # SET CONFIGURATION
     config = load_config(args)
 
-    # SET POSITIONAL ARGS
-    env = config['env']
-    if env == '':
-        env = args.env
-    
-    work = config['work']
-    if work == '':
-        work = args.work
-
     # SET TEST PROCESS AFFINITY
     if 'affcores' in args:
         os.sched_setaffinity(0, args.affcores)
@@ -653,10 +646,8 @@ def main():
 
     ## TEST
     test(
-        env    = env,
-        work   = work,
-        path   = args.trainpath,
-        chkpt  = args.chkpt,
+        path   = args.agent,
+        chkpt  = args.checkpoint,
         config = config
     )
 

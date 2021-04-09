@@ -136,6 +136,8 @@ class CPUEnv03(gym.Env):
         ### Set state from measured power.
         self._state = self.get_state( self._power )
 
+        self.update_info()
+
         return self._state
 
     def step(self, action):        
@@ -173,22 +175,11 @@ class CPUEnv03(gym.Env):
         ### GOAL: no goal.
 
         ### INFO AND STATE UPDATE:
-        self._info['state']     = next_state
-        self._info['interval']  = self.INTERVALS[next_state - 1]
-
-        self._info['reward']     = self._reward
-        self._info['acc_reward'] = self._acc_reward
-
-        self._info['freqpos']   = self._freqpos
-        self._info['frequency'] = self._frequencies[ self._freqpos ]
-
-        self._info['delta']     = next_power - self._power
-        self._info['power']     = next_power
-
-
         self._power = next_power
         self._state = next_state
         self._count += 1
+
+        self.update_info()
 
         ### RETURN:
         return [self._state, self._reward, self._done, self._info]
@@ -310,3 +301,17 @@ class CPUEnv03(gym.Env):
         power = self.measure_power(label)
 
         return power
+
+    def update_info(self):
+        self._info['step'] = self._count
+
+        self._info['state']    = self._state
+        self._info['interval'] = self.INTERVALS[self._state - 1]
+
+        self._info['reward']     = self._reward
+        self._info['acc_reward'] = self._acc_reward
+
+        self._info['freqpos']   = self._freqpos
+        self._info['frequency'] = self._frequencies[ self._freqpos ]
+
+        self._info['power'] = self._power
