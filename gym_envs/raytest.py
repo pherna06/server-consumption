@@ -70,6 +70,10 @@ def load_config(args):
 
     return config
 
+def save_config(config, path):
+    with open(path + '/config.json', 'w+') as jsonf:
+        json.dump(config, jsonf, indent = 4)
+
 #########################
 # --------------------- #
 #########################
@@ -492,6 +496,7 @@ def test(path, chkpt, config):
     if logpath is not None:
         logpath += f'/checkpoint-{chkpt}'
         generate_log(history, logpath)
+        save_config(config, logpath)
 
     return history
 
