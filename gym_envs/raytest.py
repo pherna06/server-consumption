@@ -249,6 +249,8 @@ def save_graph(history, path, varstr):
     if os.path.exists(path):
         os.remove(path)
 
+    plt.clf()
+
     # Get variables.
     for it in history:
         x = []
@@ -488,6 +490,7 @@ def test(path, chkpt, config):
     ## SAVE RESULTS AND STATUS HISTORY
     logpath = config['testconfig'].get('logpath', None)
     if logpath is not None:
+        logpath += f'/checkpoint-{chkpt}'
         generate_log(history, logpath)
 
     return history

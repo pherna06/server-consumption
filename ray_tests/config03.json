@@ -17,7 +17,9 @@
         "decision_time" : 0.10,
         "measure_time"  : 0.07,
 
-        "powstep" : 3.0
+        "powstep" : 3.0,
+
+        "seed" : 11
     },
     "workconfig" : {
         "size"   : 1000,
