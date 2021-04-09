@@ -257,6 +257,7 @@ def save_graph(history, path, varstr):
         for info in history[it]:
             x.append(step)
             y.append(history[it][info][varstr])
+            step += 1
 
         plt.plot(x, y)
 
