@@ -130,18 +130,20 @@ def get_cores(sockets):
     return rg
 
 def rapl_power(label, powertime, sockets):
-        meter = pyRAPL.Measurement(label=label)
+    meter = pyRAPL.Measurement(label=label)
+
+    while meter._results is None or meter._results.pkg is None:
         meter.begin()
         time.sleep(powertime)
         meter.end()
 
-        results = {}
-        m_time = meter._results.duration # micro-s
-        for skt in sockets:
-            m_energy = meter._results.pkg[skt] # micro-J
-            results[skt] = m_energy / m_time # watts
+    results = {}
+    m_time = meter._results.duration # micro-s
+    for skt in sockets:
+        m_energy = meter._results.pkg[skt] # micro-J
+        results[skt] = m_energy / m_time # watts
 
-        return results
+    return results
 
 
 ######################
@@ -358,10 +360,10 @@ def power_log(results, logpath):
         for skt in sockets:
             if skt == -1:
                 continue
-            power = time_results[skt][freq]
+            power = results[skt][freq]
             logf.write(f"{skt:<6}   {power:.3f}\n")
 
-        mean = time_results[-1][freq]
+        mean = results[-1][freq]
 
         logf.write("-------------------------\n") # 25-
         logf.write(f"Mean: {mean:.3f} ms\n")
