@@ -165,7 +165,7 @@ def int_scalar(size=MATRIX_SIZE):
     intN = np.random.randint(MAX_INT)
 
     while(True):
-        matB = matA // intN
+        matB = matA * intN
 
 def float_scalar(size=MATRIX_SIZE):
     """
@@ -183,7 +183,7 @@ def float_scalar(size=MATRIX_SIZE):
     floatN = np.random.rand()
 
     while(True):
-        matB = matA / floatN
+        matB = matA * floatN
         
 
 # DICT RELATION
