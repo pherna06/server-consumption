@@ -241,17 +241,17 @@ def time_csv(results, csvpath):
     csvf = open(csvpath, 'w')
 
     # Header.
-    csvf.write("Frequency,")
+    csvf.write("Frequency")
     for core in cores:
-        csvf.write(f"{core},")
-    csvf.write("\b\n")
+        csvf.write(f",{core},")
+    csvf.write("\n")
 
     # Results.
     for freq in freqs:
-        csvf.write(f"{freq},")
+        csvf.write(f"{freq}")
         for core in cores:
-            csvf.write(f"{results[core][freq]},")
-        csvf.write("\b\n")
+            csvf.write(f",{results[core][freq]},")
+        csvf.write("\n")
 
     csvf.close()
 
@@ -323,17 +323,17 @@ def power_csv(results, csvpath):
     csvf = open(csvpath, 'w')
 
     # Header.
-    csvf.write("Frequency,")
+    csvf.write("Frequency")
     for skt in sockets:
-        csvf.write(f"{skt},")
-    csvf.write("\b\n")
+        csvf.write(f",{skt}")
+    csvf.write("\n")
 
     # Results.
     for freq in freqs:
-        csvf.write(f"{freq},")
+        csvf.write(f"{freq}")
         for skt in sockets:
-            csvf.write(f"{results[skt][freq]},")
-        csvf.write("\b\n")
+            csvf.write(f",{results[skt][freq]}")
+        csvf.write("\n")
 
     csvf.close()
 
