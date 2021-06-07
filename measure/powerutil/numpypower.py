@@ -76,6 +76,39 @@ def float_product(size=MATRIX_SIZE):
     while(True):
         matC = np.matmul(matA, matB)
 
+def int_sum(size=MATRIX_SIZE):
+    """
+        Performs the sum of random integer matrices in an infinite loop.
+
+        Parameters
+        ----------
+        size : int
+            The dimension of the square matrices that will be used in the
+            operation.
+    """
+    # Random matrix generation.
+    matA = np.random.randint(MAX_INT, size=(size, size))
+    matB = np.random.randint(MAX_INT, size=(size, size))
+
+    while(True):
+        matC = matA + matB
+
+def float_sum(size=MATRIX_SIZE):
+    """
+        Performs the product of random real matrices in an infinite loop.
+
+        Parameters
+        ----------
+        size : int
+            The dimension of the square matrices that will be used in the
+            operation.
+    """
+    # Random matrix generation.
+    matA = np.random.rand(size, size)
+    matB = np.random.rand(size, size)
+
+    while(True):
+        matC = matA + matB
 
 def int_transpose(size=MATRIX_SIZE):
     """
@@ -189,10 +222,12 @@ def float_scalar(size=MATRIX_SIZE):
 # DICT RELATION
 OPERATIONS = {
     'intproduct':       int_product,
+    'intsum':           int_sum,
     'inttranspose':     int_transpose,
     'intsort':          int_sort,
     'intscalar':        int_scalar,
     'floatproduct':     float_product,
+    'floatsum':         float_sum,
     'floattranspose':   float_transpose,
     'floatsort':        float_sort,
     'floatscalar':      float_scalar
