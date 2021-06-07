@@ -151,7 +151,7 @@ def float_sort(size=LIST_SIZE):
 
 def int_scalar(size=MATRIX_SIZE):
     """
-        Performs the sum of a random integer to each element of a random 
+        Performs the division of a random integer to each element of a random 
         integer matrix in an infinite loop.
 
         Parameters
@@ -165,11 +165,11 @@ def int_scalar(size=MATRIX_SIZE):
     intN = np.random.randint(MAX_INT)
 
     while(True):
-        matB = matA + intN
+        matB = matA // intN
 
 def float_scalar(size=MATRIX_SIZE):
     """
-        Performs the sum of a random real number to each element of a random 
+        Performs the division of a random real number to each element of a random 
         real matrix in an infinite loop.
 
         Parameters
@@ -183,7 +183,7 @@ def float_scalar(size=MATRIX_SIZE):
     floatN = np.random.rand()
 
     while(True):
-        matB = matA + floatN
+        matB = matA / floatN
         
 
 # DICT RELATION
