@@ -19,3 +19,8 @@ register(
 	id='CPUEnv03-v0',
 	entry_point='gymcpu.envs:CPUEnv03'
 )
+
+register(
+	id='FinalEnv01-v0',
+	entry_point='gymcpu.envs:FinalEnv01'
+)
