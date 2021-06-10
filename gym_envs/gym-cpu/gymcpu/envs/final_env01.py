@@ -37,10 +37,8 @@ class FinalEnv01(gym.Env):
 
         #   MAXSTEPS    maximum iterations for environment
         #   SEED        seed for RNG reporducibility
-        #   RESET_FREQ  positional value of frequency at env reset
         self.MAXSTEPS   = config.get('maxsteps',   self.DEF_MAXSTEPS)
         self.SEED       = config.get('seed',       self.DEF_SEED)
-        self.RESET_FREQ = config.get('reset_freq', None)
 
         #   MINPOWER    minimum in power bandwidth
         #   MAXPOWER    maximum in power bandwidth
@@ -136,7 +134,7 @@ class FinalEnv01(gym.Env):
 
         self.reset()
 
-    def reset(self):
+    def reset(self, reset_freqpos = None):
         ### General environment variables.
         self._reward     = 0
         self._acc_reward = 0
@@ -146,10 +144,10 @@ class FinalEnv01(gym.Env):
 
 
         ### Choose preset or random initial frequency.
-        if self.RESET_FREQ is None:
+        if reset_freqpos is None:
             self._freqpos = self.RNG.choice( np.arange( len(self._frequencies) ) )
         else:
-            self._freqpos = self.RESET_FREQ
+            self._freqpos = reset_freqpos
         freq = self._frequencies[ self._freqpos ]
 
 

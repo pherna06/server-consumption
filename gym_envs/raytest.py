@@ -50,7 +50,9 @@ DEF_CONFIG = {
     'testconfig' : {
         'iter'      : 1,
         'chkptpath' : 'tests/default',
-        'verbose'   : 1
+        'verbose'   : 1,
+
+        'init_freqs' : []
     }
 }
 
@@ -226,51 +228,8 @@ def generate_log(history, path):
     histpath = path + '/test.log'
     history_log(history, histpath)
 
-    ## FREQUENCY GRAPH
-    freqpath = path + '/frequency.png'
-    save_graph(history, freqpath, 'frequency')
-
-    ## POWER GRAPH
-    powerpath = path + '/power.png'
-    save_graph(history, powerpath, 'power')
-
-def save_graph(history, path, varstr):
-    """
-        Creates or overwrites a PNG graph with the value of an agent's variable
-        in each step and iteration.
-
-        Parameters
-        ----------
-        history : dict(str, str, int)
-            Status history of the environment during test, for each iteration 
-            and step.
-        path : str
-            Namepath of the PNG file.
-        varstr : str
-            Name of the variable.
-    """
-    # Create or overwrite
-    if os.path.exists(path):
-        os.remove(path)
-
-    plt.clf()
-
-    # Get variables.
-    for it in history:
-        x = []
-        y = []
-        step = 0
-        for info in history[it]:
-            x.append(step)
-            y.append(history[it][info][varstr])
-            step += 1
-
-        plt.plot(x, y)
-
-    plt.xlabel('step')
-    plt.ylabel(varstr)
-
-    plt.savefig(path)
+    ## STATUS HISTORY CSV
+    history_csv(history, path)
 
 def history_log(history, logpath):
     """
@@ -304,6 +263,47 @@ def history_log(history, logpath):
         logf.write("#########################\n\n") # 25#
 
     logf.close()
+
+def history_csv(history, path):
+    """
+        Creates a CSV file for each iteration reflecting the environment status
+        in each step.
+
+        Parameters
+        __________
+        history : dict(str, str, dict)
+            Status history of the environment during test, for each iteration
+            and step.
+        path : str
+            Namepath of directory where CSV files will be generated.
+    """
+    iternum = 0
+    for it in history:
+        # CSV FILE CREATION
+        csvpath = path + f'iter-{iternum}.csv'
+        if os.path.exists(csvpath):
+            os.remove(csvpath)
+        csvf = open(csvpath, 'w+')
+        iternum += 1
+
+        # CSV HEADER
+        csvf.write('Step')
+        status = history[it][0]
+        for key in status:
+            if key == 'state':
+                continue
+            csvf.write(f',{key}')
+        csvf.write('\n')
+
+        # CSV CONTENT
+        for step in it:
+            csvf.write(f'{step}')
+            status = history[it][step]
+            for key in status:
+                if key == 'step':
+                    continue
+                csvf.write(f',{status[key]}')
+            csvf.write('\n')
 
 #########################
 # --------------------- #
@@ -408,16 +408,26 @@ def test_env(testenv, agent, config):
     iterations = config['iter']
     verbose    = config['verbose']
 
+    init_freqs = config['init_freqs']
+    numfreqs   = len(init_freqs)
+    freqcount  = 0
+
     history = {}
 
     # TEST ITERATIONS
     for i in range(iterations):
         # INITIAL STATUS
-        state = testenv.reset()
+        if numfreqs != 0:
+            state = testenv.reset( init_freqs[freqcount] )
+            freqcount += 1
+            freqcount %= numfreqs
+        else:
+            state = testenv.reset()
+        
         status = testenv._info.copy()
         
         history[f"Iteration {i + 1}"] = {}
-        history[f"Iteration {i + 1}"]["Step 0"] = status
+        history[f"Iteration {i + 1}"][0] = status
 
         if verbose:
             print(f"Iteration {i + 1}")
@@ -430,7 +440,7 @@ def test_env(testenv, agent, config):
             state, _, done, info = testenv.step(action)
 
             status = info.copy()
-            history[f"Iteration {i + 1}"][f"Step {s + 1}"] = status
+            history[f"Iteration {i + 1}"][s + 1] = status
             
             if verbose:
                 display_status(f"Step {s + 1}", status)
