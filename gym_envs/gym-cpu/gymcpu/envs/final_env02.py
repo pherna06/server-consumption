@@ -8,7 +8,7 @@ import time
 import numpy as np
 from math import ceil
 
-class FinalEnv01(gym.Env):
+class FinalEnv02(gym.Env):
     ### DEFAULT PERSONAL VALUES
     DEF_POWER = 65.0
 
@@ -87,10 +87,11 @@ class FinalEnv01(gym.Env):
         #   0: hold  frequency
         #   1: lower frequency
         #   2: raise frequency
-        self.action_space = gym.spaces.Discrete(2)
+        self.action_space = gym.spaces.Discrete(3)
 
-        self.LOWER_FREQ = 0
-        self.RAISE_FREQ = 1
+        self.HOLD_FREQ  = 0
+        self.LOWER_FREQ = 1
+        self.RAISE_FREQ = 2
 
 
         ### Action rewards:
@@ -171,7 +172,9 @@ class FinalEnv01(gym.Env):
         assert self.action_space.contains(action)
 
         ### DECIDE ACTION:
-        if action == self.RAISE_FREQ:
+        if action == self.HOLD_FREQ:
+            pass
+        elif action == self.RAISE_FREQ:
             if self._freqpos == len(self._frequencies) - 1:
                 pass
             else:
@@ -259,18 +262,18 @@ class FinalEnv01(gym.Env):
     def get_reward(self, state, prev_state):
         ### Positive while on goal.
         if state == self._goal:
-            return  self.REWARD_GOAL
+            return self.REWARD_GOAL
 
         if state < self._goal:
             if state - prev_state > 0:
-                return  self.REWARD_CLOSER
+                return self.REWARD_CLOSER
             else:
-                return  self.REWARD_FARTHER
+                return self.REWARD_FARTHER
         if state > self._goal:
             if state - prev_state < 0:
-                return  self.REWARD_CLOSER
+                return self.REWARD_CLOSER
             else:
-                return  self.REWARD_FARTHER
+                return self.REWARD_FARTHER
 
     def update_info(self):
         self._info['step'] = self._count

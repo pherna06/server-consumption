@@ -24,3 +24,8 @@ register(
 	id='FinalEnv01-v0',
 	entry_point='gymcpu.envs:FinalEnv01'
 )
+
+register(
+	id='FinalEnv02-v0',
+	entry_point='gymcpu.envs:FinalEnv02'
+)
