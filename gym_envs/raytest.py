@@ -224,6 +224,9 @@ def generate_log(history, path):
             Path where files will be created (overwritten if necessary)
         
     """
+    ## CREATE FOLDER
+    os.makedirs( os.path.dirname(path), exist_ok=True)
+
     ## STATUS HISTORY LOG
     histpath = path + '/test.log'
     history_log(history, histpath)
@@ -290,13 +293,13 @@ def history_csv(history, path):
         csvf.write('Step')
         status = history[it][0]
         for key in status:
-            if key == 'state':
+            if key == 'step':
                 continue
             csvf.write(f',{key}')
         csvf.write('\n')
 
         # CSV CONTENT
-        for step in it:
+        for step in history[it]:
             csvf.write(f'{step}')
             status = history[it][step]
             for key in status:
