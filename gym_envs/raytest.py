@@ -225,7 +225,7 @@ def generate_log(history, path):
         
     """
     ## CREATE FOLDER
-    os.makedirs( os.path.dirname(path), exist_ok=True)
+    os.makedirs( path, exist_ok=True)
 
     ## STATUS HISTORY LOG
     histpath = path + '/test.log'
