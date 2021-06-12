@@ -8,7 +8,7 @@ import time
 import numpy as np
 from math import ceil
 
-class FinalEnv02(gym.Env):
+class FinalEnv03(gym.Env):
     ### DEFAULT PERSONAL VALUES
     DEF_POWER = 65.0
 
@@ -21,7 +21,7 @@ class FinalEnv02(gym.Env):
     DEF_MINPOWER = 15.0
     DEF_MAXPOWER = 115.0
 
-    DEF_POWERSTEP = 3.0 
+    DEF_POWERPOINTS = [DEF_MINPOWER, DEF_MAXPOWER] 
 
     DEF_DECISION = 0.25 # 4 decisions / sec
 
@@ -53,11 +53,9 @@ class FinalEnv02(gym.Env):
         self.MEASURE_TIME  = config.get('measure_time',  self.DECISION_TIME)
         self.SLEEP_TIME    = self.DECISION_TIME - self.MEASURE_TIME
 
-        #   POWERSTEP   size of intervals of observation space
         #   POWERPOINTS extrema of power intervals
         #   INTERVALS   list power intervals
-        self.POWERSTEP   = config.get('powstep', self.DEF_POWERSTEP)
-        self.POWERPOINTS = self.get_powerpoints(self.POWERSTEP)
+        self.POWERPOINTS = sorted(config.get('powpoints', self.DEF_POWERPOINTS))
         self.INTERVALS   = self.get_intervals(self.POWERPOINTS)
 
 
@@ -227,16 +225,6 @@ class FinalEnv02(gym.Env):
 
 
     ### AUXILIARY ENV METHODS
-
-    def get_powerpoints(self, pstep):
-        powers = []
-        ppoint = self.MINPOWER
-        powers.append(ppoint)
-        while ppoint < self.MAXPOWER:
-            ppoint += pstep
-            powers.append(ppoint)
-
-        return powers
 
     def get_intervals(self, powerpoints):
         intervals = []
