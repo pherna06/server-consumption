@@ -283,7 +283,7 @@ def history_csv(history, path):
     iternum = 0
     for it in history:
         # CSV FILE CREATION
-        csvpath = path + f'iter-{iternum}.csv'
+        csvpath = path + f'/iter-{iternum}.csv'
         if os.path.exists(csvpath):
             os.remove(csvpath)
         csvf = open(csvpath, 'w+')
