@@ -76,6 +76,39 @@ def float_product(size=MATRIX_SIZE):
     while(True):
         matC = np.matmul(matA, matB)
 
+def int_sum(size=MATRIX_SIZE):
+    """
+        Performs the sum of random integer matrices in an infinite loop.
+
+        Parameters
+        ----------
+        size : int
+            The dimension of the square matrices that will be used in the
+            operation.
+    """
+    # Random matrix generation.
+    matA = np.random.randint(MAX_INT, size=(size, size))
+    matB = np.random.randint(MAX_INT, size=(size, size))
+
+    while(True):
+        matC = matA + matB
+
+def float_sum(size=MATRIX_SIZE):
+    """
+        Performs the product of random real matrices in an infinite loop.
+
+        Parameters
+        ----------
+        size : int
+            The dimension of the square matrices that will be used in the
+            operation.
+    """
+    # Random matrix generation.
+    matA = np.random.rand(size, size)
+    matB = np.random.rand(size, size)
+
+    while(True):
+        matC = matA + matB
 
 def int_transpose(size=MATRIX_SIZE):
     """
@@ -151,7 +184,7 @@ def float_sort(size=LIST_SIZE):
 
 def int_scalar(size=MATRIX_SIZE):
     """
-        Performs the sum of a random integer to each element of a random 
+        Performs the division of a random integer to each element of a random 
         integer matrix in an infinite loop.
 
         Parameters
@@ -165,11 +198,11 @@ def int_scalar(size=MATRIX_SIZE):
     intN = np.random.randint(MAX_INT)
 
     while(True):
-        matB = matA + intN
+        matB = matA * intN
 
 def float_scalar(size=MATRIX_SIZE):
     """
-        Performs the sum of a random real number to each element of a random 
+        Performs the division of a random real number to each element of a random 
         real matrix in an infinite loop.
 
         Parameters
@@ -183,16 +216,18 @@ def float_scalar(size=MATRIX_SIZE):
     floatN = np.random.rand()
 
     while(True):
-        matB = matA + floatN
+        matB = matA * floatN
         
 
 # DICT RELATION
 OPERATIONS = {
     'intproduct':       int_product,
+    'intsum':           int_sum,
     'inttranspose':     int_transpose,
     'intsort':          int_sort,
     'intscalar':        int_scalar,
     'floatproduct':     float_product,
+    'floatsum':         float_sum,
     'floattranspose':   float_transpose,
     'floatsort':        float_sort,
     'floatscalar':      float_scalar
